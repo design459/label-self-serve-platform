@@ -41,7 +41,7 @@ export default function WorkspaceApp({ token }: { token: string }) {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/workspace/${token}/summary`);
+      const res = await fetch(`/api/workspace/${token}/summary`, { cache: "no-store" });
       const data = await safeJson(res);
       if (!res.ok) {
         setLoadError(data?.error || "This link is invalid or has expired.");

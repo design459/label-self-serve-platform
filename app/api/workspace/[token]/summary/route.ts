@@ -69,6 +69,13 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     printUrl,
     lastReview:
       order.status === "rejected" && latestReview ? { decision: latestReview.decision, reason: latestReview.reason } : null,
+  }, {
+    // Belt-and-suspenders on top of `dynamic = "force-dynamic"`: explicit
+    // no-store so neither the browser nor Netlify's CDN caches this
+    // response either. Observed live: a plain navigation reused a stale
+    // cached copy showing the previous revision even after force-dynamic
+    // was deployed and confirmed working via a fresh (uncached) fetch.
+    headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
   });
   } catch (err) {
     return apiCatch(err);
