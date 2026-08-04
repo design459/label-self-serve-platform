@@ -3,6 +3,15 @@ import { getOrderByToken } from "@/lib/workspaceAuth";
 import { supabaseAdmin, signedUrlFor } from "@/lib/supabaseServer";
 import { apiCatch } from "@/lib/apiError";
 
+// Without this, Next.js statically caches this GET handler's response in
+// production (it has no cookies()/headers() call to imply per-request
+// data, so it defaults to cacheable) — every customer would see the same
+// frozen snapshot from the first request forever, regardless of template
+// selection, logo upload, or generation happening afterward. Found live:
+// selecting a template returned 200 and wrote to the DB, but this endpoint
+// kept serving `selectedTemplateId: null` from the very first request.
+export const dynamic = "force-dynamic";
+
 export async function GET(_req: NextRequest, { params }: { params: { token: string } }) {
   try {
   const order = await getOrderByToken(params.token);
