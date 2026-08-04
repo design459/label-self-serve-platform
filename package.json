@@ -1,0 +1,30 @@
+{
+  "name": "label-self-serve-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Customer self-serve label design platform for AN/SFC private-label and contract-manufacturing customers. Customer designs, staff give compliance sign-off before print.",
+  "scripts": {
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "^149.0.0",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.110.0",
+    "next": "^14.2.0",
+    "puppeteer-core": "^23.0.0",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.15.0",
+    "@types/node": "^20.14.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.5.0"
+  }
+}
