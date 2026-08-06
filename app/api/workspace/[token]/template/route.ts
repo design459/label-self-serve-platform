@@ -27,13 +27,23 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       return NextResponse.json({ error: "That template doesn't match this order's pack format." }, { status: 400 });
     }
 
-    await db.from("label_orders").update({ selected_template_id: templateId, updated_at: new Date().toISOString() }).eq(
-      "id",
-      order.id
-    );
+    const { data: updated, error: updateError } = await db
+      .from("label_orders")
+      .update({ selected_template_id: templateId, updated_at: new Date().toISOString() })
+      .eq("id", order.id)
+      .select()
+      .maybeSingle();
+
+    if (updateError) {
+      return NextResponse.json({ error: `Failed to save template selection: ${updateError.message}` }, { status: 500 });
+    }
+    if (!updated) {
+      return NextResponse.json({ error: "Template update affected 0 rows — order id mismatch." }, { status: 500 });
+    }
+
     await logAudit(order.id, "customer", "template_selected", { templateId });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, selectedTemplateId: updated.selected_template_id });
   } catch (err) {
     return apiCatch(err);
   }
