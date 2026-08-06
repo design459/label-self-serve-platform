@@ -100,14 +100,25 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
         <p className="wizard-brand">Label platform</p>
         <ol className="wizard-steps">
           {STEPS.map((step, i) => (
-            <li key={step.id} className={`wizard-step ${i === activeStep ? "active" : ""} ${i < activeStep ? "done" : ""}`}>
-              <span className="wizard-step-circle">{i < activeStep ? "✓" : i + 1}</span>
+            <li
+              key={step.id}
+              className={`wizard-step ${!link && i === activeStep ? "active" : ""} ${link || i < activeStep ? "done" : ""}`}
+            >
+              <span className="wizard-step-circle">{link || i < activeStep ? "✓" : i + 1}</span>
               <span className="wizard-step-label">{step.label}</span>
             </li>
           ))}
         </ol>
         <p className="wizard-step-count">
-          Step {activeStep + 1} of {STEPS.length}
+          {link ? (
+            <>
+              Steps <strong style={{ color: "#fff" }}>{STEPS.length}</strong> / {STEPS.length} complete
+            </>
+          ) : (
+            <>
+              Step {activeStep + 1} of {STEPS.length}
+            </>
+          )}
         </p>
       </aside>
 
@@ -126,26 +137,36 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
         </div>
 
         {link ? (
-          <div className="card" style={{ maxWidth: 640 }}>
-            <h2>Label workspace created</h2>
-            <p className="subtitle">Share this link with {customerName || "the customer"}. It is scoped to this order only.</p>
-            <div className="field">
-              <input type="text" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
-            </div>
-            <div className="btn-row">
-              <button
-                className="btn"
-                type="button"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(link);
-                  setCopied(true);
-                }}
-              >
-                {copied ? "Copied" : "Copy link"}
-              </button>
-              <button className="btn btn-outline" type="button" onClick={() => setLink(null)}>
-                Create another
-              </button>
+          <div className="success-bg">
+            <img className="success-bg-img" src="/hero/packaging-hero.png" alt="" />
+            <div className="success-bg-scrim" />
+            <div className="success-card">
+              <div className="success-check">✓</div>
+              <h2 style={{ textAlign: "center" }}>Label workspace created</h2>
+              <p className="subtitle" style={{ textAlign: "center" }}>
+                Share this link with {customerName || "the customer"}. It is scoped to this order only.
+              </p>
+              <div className="success-link-row">
+                <input type="text" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(link);
+                    setCopied(true);
+                  }}
+                >
+                  {copied ? "Copied" : "Copy link"}
+                </button>
+              </div>
+              <div className="btn-row" style={{ justifyContent: "center" }}>
+                <button className="btn" type="button" onClick={() => setLink(null)}>
+                  Create another
+                </button>
+                <a className="btn btn-outline" href="/admin/review">
+                  Review queue
+                </a>
+              </div>
             </div>
           </div>
         ) : (
