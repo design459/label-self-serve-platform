@@ -872,23 +872,7 @@ table.review-table th {
 }
 
 .wizard-page-header {
-  position: relative;
-  padding: 8px 220px 8px 0;
   margin-bottom: 28px;
-  overflow: hidden;
-  border-radius: var(--radius);
-}
-
-.wizard-page-decor {
-  position: absolute;
-  top: -20px;
-  right: -20px;
-  width: 260px;
-  height: 180px;
-  object-fit: cover;
-  opacity: 0.18;
-  border-radius: var(--radius);
-  pointer-events: none;
 }
 
 .stat-row {
@@ -996,12 +980,6 @@ table.review-table th {
 @media (max-width: 900px) {
   .stat-row {
     grid-template-columns: 1fr;
-  }
-  .wizard-page-header {
-    padding-right: 0;
-  }
-  .wizard-page-decor {
-    display: none;
   }
 }
 

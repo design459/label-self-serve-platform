@@ -45,7 +45,6 @@ export default async function ReviewQueuePage() {
         </nav>
 
         <div className="wizard-page-header">
-          <img className="wizard-page-decor" src="/hero/success-hero.png" alt="" />
           <h1>Review queue</h1>
           <p className="subtitle">Labels waiting for compliance sign-off appear here first.</p>
         </div>
