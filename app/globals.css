@@ -605,3 +605,159 @@ table.review-table th {
     padding: 32px 24px;
   }
 }
+
+/* New-workspace wizard — dark sidebar step navigator (scroll-spy, since
+   this is a single real form, not gated steps) + a two-column form on a
+   cream background, same section-label-with-underline treatment as the
+   marketing site's "FROM THE BLOG" eyebrow. */
+.wizard-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.wizard-sidebar {
+  flex: 0 0 280px;
+  background: var(--accent-dark);
+  color: #fff;
+  padding: 40px 28px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.wizard-brand {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 20px;
+  margin: 0 0 40px;
+}
+
+.wizard-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.wizard-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  position: relative;
+}
+
+.wizard-step::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: -8px;
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.wizard-step:first-child::before {
+  display: none;
+}
+
+.wizard-step-circle {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.wizard-step-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 500;
+}
+
+.wizard-step.active .wizard-step-circle {
+  background: #fff;
+  border-color: #fff;
+  color: var(--accent-dark);
+}
+
+.wizard-step.active .wizard-step-label {
+  color: #fff;
+  font-weight: 700;
+}
+
+.wizard-step.done .wizard-step-circle {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+}
+
+.wizard-step.done .wizard-step-label {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.wizard-step-count {
+  margin-top: auto;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.wizard-main {
+  flex: 1;
+  padding: 40px 48px 80px;
+  background: var(--bg);
+  min-width: 0;
+}
+
+.wizard-topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.wizard-section {
+  margin-bottom: 40px;
+}
+
+.wizard-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 4px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+
+.wizard-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .wizard-sidebar {
+    display: none;
+  }
+  .wizard-main {
+    padding: 24px 20px 60px;
+  }
+  .wizard-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
