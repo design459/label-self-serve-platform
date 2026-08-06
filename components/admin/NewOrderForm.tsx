@@ -122,24 +122,20 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
         </p>
       </aside>
 
-      <main className="wizard-main">
-        <div className="wizard-topbar">
-          <h1 style={{ marginBottom: 0 }}>New label workspace</h1>
-          <nav style={{ display: "flex", gap: 16, alignItems: "center", fontSize: 14 }}>
-            <a className="btn btn-outline" href="/admin/review" style={{ padding: "6px 12px" }}>
-              Review queue
-            </a>
-            <span style={{ color: "var(--muted)" }}>{staffEmail}</span>
-            <button className="btn" onClick={signOut} style={{ padding: "6px 12px" }} type="button">
-              Sign out
-            </button>
-          </nav>
-        </div>
-
+      <main className={link ? "wizard-main wizard-main--flush" : "wizard-main"}>
         {link ? (
           <div className="success-bg">
-            <img className="success-bg-img" src="/hero/packaging-hero.png" alt="" />
+            <img className="success-bg-img" src="/hero/success-hero.png" alt="" />
             <div className="success-bg-scrim" />
+            <nav className="success-topnav">
+              <a className="btn btn-outline" href="/admin/review" style={{ padding: "6px 12px" }}>
+                Review queue
+              </a>
+              <span className="success-topnav-email">{staffEmail}</span>
+              <button className="btn" onClick={signOut} style={{ padding: "6px 12px" }} type="button">
+                Sign out
+              </button>
+            </nav>
             <div className="success-card">
               <div className="success-check">✓</div>
               <h2 style={{ textAlign: "center" }}>Label workspace created</h2>
@@ -170,7 +166,20 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
             </div>
           </div>
         ) : (
-          <form onSubmit={onSubmit} style={{ maxWidth: 780 }}>
+          <>
+            <div className="wizard-topbar">
+              <h1 style={{ marginBottom: 0 }}>New label workspace</h1>
+              <nav style={{ display: "flex", gap: 16, alignItems: "center", fontSize: 14 }}>
+                <a className="btn btn-outline" href="/admin/review" style={{ padding: "6px 12px" }}>
+                  Review queue
+                </a>
+                <span style={{ color: "var(--muted)" }}>{staffEmail}</span>
+                <button className="btn" onClick={signOut} style={{ padding: "6px 12px" }} type="button">
+                  Sign out
+                </button>
+              </nav>
+            </div>
+            <form onSubmit={onSubmit} style={{ maxWidth: 780 }}>
             {error && <div className="error-box">{error}</div>}
 
             <div className="wizard-section" ref={(el) => { sectionRefs.current[0] = el; }}>
@@ -282,7 +291,8 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
                 </button>
               </div>
             </div>
-          </form>
+            </form>
+          </>
         )}
       </main>
     </div>

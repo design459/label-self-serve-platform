@@ -762,14 +762,17 @@ table.review-table th {
   }
 }
 
-/* "Workspace created" success view — full-bleed packaging photo behind a
-   centered card, filling the whole main content area (not tucked in a
-   corner). */
+/* "Workspace created" success view — the ENTIRE main content area (where
+   the topbar would otherwise sit on its own white strip) becomes one
+   continuous full-bleed photo, with the nav floating directly on top of
+   it instead of on a separate background. */
+.wizard-main--flush {
+  padding: 0;
+}
+
 .success-bg {
   position: relative;
-  min-height: calc(100vh - 176px);
-  margin: -40px -48px;
-  border-radius: var(--radius);
+  min-height: 100vh;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -789,6 +792,27 @@ table.review-table th {
   position: absolute;
   inset: 0;
   background: rgba(247, 245, 239, 0.4);
+}
+
+.success-topnav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 24px 32px;
+  font-size: 14px;
+}
+
+.success-topnav-email {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 6px 12px;
+  border-radius: 999px;
 }
 
 .success-card {
