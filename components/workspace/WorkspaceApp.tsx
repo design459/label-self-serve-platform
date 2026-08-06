@@ -41,7 +41,13 @@ export default function WorkspaceApp({ token }: { token: string }) {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/workspace/${token}/summary`, { cache: "no-store" });
+      // `no-store` + the route's own no-store headers weren't enough — a
+      // stale response kept being served from some caching layer between
+      // the browser and this Netlify Function (observed live: revisions
+      // and design data frozen at a single point in time while other
+      // fields on the same DB row updated correctly). A cache-busting
+      // query param guarantees no cache can ever key-match this request.
+      const res = await fetch(`/api/workspace/${token}/summary?t=${Date.now()}`, { cache: "no-store" });
       const data = await safeJson(res);
       if (!res.ok) {
         setLoadError(data?.error || "This link is invalid or has expired.");
