@@ -33,8 +33,16 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     await uploadAsset(path, buffer, file.type);
 
     const db = supabaseAdmin();
-    await db.from("label_assets").delete().eq("label_order_id", order.id).eq("kind", "logo");
-    await db.from("label_assets").insert({ label_order_id: order.id, kind: "logo", storage_path: path });
+    const { error: deleteError } = await db.from("label_assets").delete().eq("label_order_id", order.id).eq("kind", "logo");
+    if (deleteError) {
+      return NextResponse.json({ error: `Failed to replace existing logo: ${deleteError.message}` }, { status: 500 });
+    }
+    const { error: insertError } = await db
+      .from("label_assets")
+      .insert({ label_order_id: order.id, kind: "logo", storage_path: path });
+    if (insertError) {
+      return NextResponse.json({ error: `Failed to save logo: ${insertError.message}` }, { status: 500 });
+    }
     await logAudit(order.id, "customer", "logo_uploaded", { path });
 
     return NextResponse.json({ ok: true });

@@ -86,25 +86,40 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       });
       if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
 
-      await db.from("label_designs").update({ print_storage_path: printPath }).eq("id", design.id);
-      await db
+      const { error: designUpdateError } = await db
+        .from("label_designs")
+        .update({ print_storage_path: printPath })
+        .eq("id", design.id);
+      if (designUpdateError) {
+        return NextResponse.json({ error: `Failed to save print file: ${designUpdateError.message}` }, { status: 500 });
+      }
+      const { error: approveError } = await db
         .from("label_orders")
         .update({ status: "approved", updated_at: new Date().toISOString() })
         .eq("id", order.id);
+      if (approveError) {
+        return NextResponse.json({ error: `Failed to mark order approved: ${approveError.message}` }, { status: 500 });
+      }
     } else {
-      await db
+      const { error: rejectError } = await db
         .from("label_orders")
         .update({ status: "rejected", updated_at: new Date().toISOString() })
         .eq("id", order.id);
+      if (rejectError) {
+        return NextResponse.json({ error: `Failed to mark order rejected: ${rejectError.message}` }, { status: 500 });
+      }
     }
 
-    await db.from("compliance_reviews").insert({
+    const { error: reviewInsertError } = await db.from("compliance_reviews").insert({
       label_order_id: order.id,
       label_design_id: design.id,
       reviewer_id: staff.userId,
       decision,
       reason: reason ?? null,
     });
+    if (reviewInsertError) {
+      return NextResponse.json({ error: `Failed to record review decision: ${reviewInsertError.message}` }, { status: 500 });
+    }
 
     await logAudit(order.id, `staff:${staff.email ?? staff.userId}`, decision === "approved" ? "approved" : "rejected", {
       designId: design.id,

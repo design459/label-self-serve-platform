@@ -24,11 +24,20 @@ export async function POST(_req: NextRequest, { params }: { params: { token: str
       return NextResponse.json({ error: "Generate a proof before submitting for review." }, { status: 400 });
     }
 
-    await db.from("label_designs").update({ is_submitted: true }).eq("id", latestDesign.id);
-    await db
+    const { error: designError } = await db
+      .from("label_designs")
+      .update({ is_submitted: true })
+      .eq("id", latestDesign.id);
+    if (designError) {
+      return NextResponse.json({ error: `Failed to mark design submitted: ${designError.message}` }, { status: 500 });
+    }
+    const { error: orderError } = await db
       .from("label_orders")
       .update({ status: "submitted", updated_at: new Date().toISOString() })
       .eq("id", order.id);
+    if (orderError) {
+      return NextResponse.json({ error: `Failed to update order status: ${orderError.message}` }, { status: 500 });
+    }
     await logAudit(order.id, "customer", "submitted_for_review", { designId: latestDesign.id });
 
     return NextResponse.json({ ok: true });

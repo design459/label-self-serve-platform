@@ -118,10 +118,13 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     });
     if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
 
-    await db
+    const { error: designUpdateError } = await db
       .from("label_designs")
       .update({ theme, render_input: renderInput, proof_storage_path: proofPath })
       .eq("id", newDesign.id);
+    if (designUpdateError) {
+      return NextResponse.json({ error: `Failed to save rendered proof: ${designUpdateError.message}` }, { status: 500 });
+    }
 
     await logAudit(order.id, "customer", "revision_generated", {
       designId: newDesign.id,
