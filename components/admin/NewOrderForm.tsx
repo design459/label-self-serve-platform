@@ -115,9 +115,11 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
         <div className="wizard-topbar">
           <h1 style={{ marginBottom: 0 }}>New label workspace</h1>
           <nav style={{ display: "flex", gap: 16, alignItems: "center", fontSize: 14 }}>
-            <a href="/admin/review">Review queue</a>
+            <a className="btn btn-outline" href="/admin/review" style={{ padding: "6px 12px" }}>
+              Review queue
+            </a>
             <span style={{ color: "var(--muted)" }}>{staffEmail}</span>
-            <button className="btn btn-outline" onClick={signOut} style={{ padding: "6px 12px" }} type="button">
+            <button className="btn" onClick={signOut} style={{ padding: "6px 12px" }} type="button">
               Sign out
             </button>
           </nav>
