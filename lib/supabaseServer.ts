@@ -14,7 +14,22 @@ export function supabaseAdmin(): SupabaseClient {
   if (!url || !serviceKey) {
     throw new Error("Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
   }
-  cached = createClient(url, serviceKey, { auth: { persistSession: false } });
+  cached = createClient(url, serviceKey, {
+    auth: { persistSession: false },
+    // Root-cause fix, found live: `export const dynamic = "force-dynamic"`
+    // on the route did NOT stop Netlify's Next.js Runtime from caching the
+    // *inner* fetch supabase-js makes to Supabase's REST API (observed via
+    // response headers: Cache-Status: "Netlify Durable") — every read kept
+    // returning one frozen snapshot from early in testing regardless of
+    // route-level cache headers or cache-busting query params on our own
+    // endpoint, because those don't affect this inner fetch's cache key at
+    // all. Forcing cache: "no-store" on every request this client makes is
+    // the fix, since it stops the fetch from being cacheable in the first
+    // place instead of trying to invalidate/bypass a cache after the fact.
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+    },
+  });
   return cached;
 }
 
