@@ -2,10 +2,17 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <div className="page-narrow">
-      <div className="card">
-        <h1>Label workspace</h1>
-        <p className="subtitle">
+    <div className="hero">
+      <img className="hero-bg" src="/hero/packaging-hero.png" alt="" />
+      <div className="hero-scrim" />
+      <div className="hero-content">
+        <p className="hero-eyebrow">Label generation</p>
+        <h1 className="hero-heading">
+          Your label workspace,
+          <br />
+          one click away
+        </h1>
+        <p className="hero-subtitle">
           Customers reach their label workspace via a link issued for their order — there is no general
           public entry point here.
         </p>
