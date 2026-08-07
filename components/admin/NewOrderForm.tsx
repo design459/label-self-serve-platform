@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PACK_FORMAT_LABELS, PackFormat } from "@/lib/types";
+import { CatalogProduct, PACK_FORMAT_LABELS, PackFormat } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 import { useRouter } from "next/navigation";
 
@@ -36,7 +36,35 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
   const [copied, setCopied] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
 
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState("");
+
   const sectionRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  // Starter catalog (7 Ancient Nutra bestsellers, see
+  // supabase/migrations/0002_products.sql) — picking one auto-fills the
+  // Regulatory content section below with that product's real, exact
+  // ingredients/claims/dosage text instead of typing it by hand each time.
+  useEffect(() => {
+    fetch("/api/admin/products")
+      .then((res) => (res.ok ? res.json() : { products: [] }))
+      .then((data) => setProducts(data.products ?? []))
+      .catch(() => setProducts([]));
+  }, []);
+
+  function onSelectProduct(id: string) {
+    setSelectedProductId(id);
+    if (!id) return; // "— Custom / not listed —"
+    const p = products.find((x) => x.id === id);
+    if (!p) return;
+    setProductName(p.name);
+    setPackFormat(p.pack_format);
+    setIngredients(p.ingredients);
+    setClaims(p.claims);
+    setStatutoryMarks(p.statutory_marks);
+    setServingSize(p.serving_size);
+    setCalories(p.calories);
+  }
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -198,6 +226,21 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
 
             <div className="wizard-section" ref={(el) => { sectionRefs.current[1] = el; }}>
               <p className="wizard-section-label">Your product information</p>
+              <div className="field">
+                <label>Product</label>
+                <select value={selectedProductId} onChange={(e) => onSelectProduct(e.target.value)}>
+                  <option value="">— Custom / not listed —</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="field-hint">
+                  Picking a product fills in Regulatory content below with its real ingredients/claims/dosage text —
+                  choose &quot;Custom&quot; to type your own instead.
+                </p>
+              </div>
               <div className="wizard-grid-2">
                 <div className="field">
                   <label>SKU code</label>

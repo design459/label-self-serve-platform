@@ -99,3 +99,16 @@ export const PACK_FORMAT_LABELS: Record<PackFormat, string> = {
   jar: "Jar",
   sachet: "Single-serve sachet",
 };
+
+// Starter catalog (7 Ancient Nutra bestsellers) for the product picker on
+// /admin/orders/new — see supabase/migrations/0002_products.sql.
+export interface CatalogProduct {
+  id: string;
+  name: string;
+  pack_format: PackFormat;
+  ingredients: string;
+  claims: string;
+  statutory_marks: string;
+  serving_size: string;
+  calories: string;
+}
