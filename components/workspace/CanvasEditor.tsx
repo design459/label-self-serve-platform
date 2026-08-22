@@ -7,20 +7,23 @@ import {
   SendToBack,
   Trash2,
   Type,
-  Sparkles,
+  Shapes,
+  LayoutTemplate,
+  ImagePlus,
+  ImageUp,
   AlignHorizontalJustifyStart,
   AlignHorizontalJustifyCenter,
   AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart,
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
-  ImageUp,
 } from "lucide-react";
 import { FONT_PRESETS } from "@/lib/types";
 import { CanvasElement, IconId, isDeletable } from "@/lib/canvasLayout";
 import { Summary } from "./types";
 import { ICON_COMPONENTS } from "./iconRegistry";
 import IconPicker from "./IconPicker";
+import LayoutVariantPicker from "./LayoutVariantPicker";
 
 const STAGE_MAX_WIDTH = 640;
 
@@ -54,6 +57,7 @@ export default function CanvasEditor({
   const { order, regulatory, panel } = summary;
   const template = summary.templates.find((t) => t.id === order.selectedTemplateId) ?? summary.templates[0];
   const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"text" | "icons" | "templates" | "photo" | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { widthMm, heightMm, scale, stageW, stageH } = useMemo(() => {
@@ -141,14 +145,63 @@ export default function CanvasEditor({
 
   const selected = elements.find((e) => e.id === selectedId) ?? null;
 
+  function toggleTab(tab: "text" | "icons" | "templates" | "photo") {
+    setActiveTab((cur) => (cur === tab ? null : tab));
+  }
+
   return (
     <div className="canvas-workspace">
-      <div className="canvas-rail">
-        <button type="button" className="icon-btn" title="Add text" onClick={addText}>
-          <Type size={18} />
+      <div className="editor-rail-tabs">
+        <button type="button" className={`editor-rail-tab ${activeTab === "text" ? "active" : ""}`} onClick={() => toggleTab("text")}>
+          <Type size={20} />
+          <span>Text</span>
         </button>
-        <IconAddButton onAdd={addIcon} />
+        <button type="button" className={`editor-rail-tab ${activeTab === "icons" ? "active" : ""}`} onClick={() => toggleTab("icons")}>
+          <Shapes size={20} />
+          <span>Icons</span>
+        </button>
+        <button type="button" className={`editor-rail-tab ${activeTab === "templates" ? "active" : ""}`} onClick={() => toggleTab("templates")}>
+          <LayoutTemplate size={20} />
+          <span>Templates</span>
+        </button>
+        <button type="button" className={`editor-rail-tab ${activeTab === "photo" ? "active" : ""}`} onClick={() => toggleTab("photo")}>
+          <ImagePlus size={20} />
+          <span>Photo</span>
+        </button>
       </div>
+
+      {activeTab && (
+        <div className="editor-rail-panel">
+          {activeTab === "text" && (
+            <>
+              <p className="wizard-section-label">Text</p>
+              <button type="button" className="btn btn-block" onClick={addText}>
+                + Add a text box
+              </button>
+            </>
+          )}
+          {activeTab === "icons" && (
+            <>
+              <p className="wizard-section-label">Icons</p>
+              <IconPicker onSelect={addIcon} />
+            </>
+          )}
+          {activeTab === "templates" && (
+            <>
+              <p className="wizard-section-label">Templates</p>
+              <LayoutVariantPicker token={token} onApplied={(els) => onElementsChange(els)} />
+            </>
+          )}
+          {activeTab === "photo" && (
+            <>
+              <p className="wizard-section-label">Photo</p>
+              <button type="button" className="btn btn-block" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+                {uploading ? "Uploading…" : logoUrl ? "Replace photo" : "Upload a photo"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="canvas-stage-col">
         <div
@@ -307,27 +360,6 @@ export default function CanvasEditor({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function IconAddButton({ onAdd }: { onAdd: (id: IconId) => void }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ position: "relative" }}>
-      <button type="button" className="icon-btn" title="Add icon" onClick={() => setOpen((v) => !v)}>
-        <Sparkles size={18} />
-      </button>
-      {open && (
-        <div className="icon-add-popover">
-          <IconPicker
-            onSelect={(id) => {
-              onAdd(id);
-              setOpen(false);
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }

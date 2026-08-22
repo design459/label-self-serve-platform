@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { LAYOUT_VARIANTS, LayoutVariant } from "@/lib/canvasLayout";
+import { CanvasElement, LAYOUT_VARIANTS, LayoutVariant } from "@/lib/canvasLayout";
 import { safeJson } from "./types";
 
 interface Props {
   token: string;
-  onApplied: () => void;
+  onApplied: (elements: CanvasElement[]) => void;
 }
 
 // A small "template gallery" — a few hand-designed starting arrangements,
@@ -27,7 +27,7 @@ export default function LayoutVariantPicker({ token, onApplied }: Props) {
     const data = await safeJson(res);
     setBusy(null);
     if (!res.ok) return setError(data?.error || "Couldn't apply that starting layout.");
-    onApplied();
+    onApplied(data.elements);
   }
 
   return (

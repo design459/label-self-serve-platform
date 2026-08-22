@@ -1118,9 +1118,13 @@ input[type="range"] {
   margin-bottom: 16px;
 }
 
-/* Editor layout: a dark icon rail + the stage column (rendered together by
-   CanvasEditor.tsx as .canvas-workspace), with the LayersPanel as a third
-   sibling column added by CanvasEditorModal.tsx. */
+/* Editor layout: a labeled-tab icon rail + slide-out panel + the stage
+   column (rendered together by CanvasEditor.tsx as .canvas-workspace),
+   with the LayersPanel as a third sibling column added by
+   EditorPage.tsx/CanvasEditorModal.tsx. Rail styled after a typical design
+   tool's vertical tab strip (icon above a short label, active tab
+   highlighted) rather than the plain icon-only buttons used elsewhere in
+   this app. */
 .canvas-workspace-outer {
   display: flex;
   gap: 16px;
@@ -1131,39 +1135,59 @@ input[type="range"] {
 
 .canvas-workspace {
   display: flex;
-  gap: 12px;
+  gap: 0;
   align-items: flex-start;
 }
 
-.canvas-rail {
+.editor-rail-tabs {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   background: var(--accent-dark);
-  border-radius: var(--radius);
-  padding: 10px 8px;
+  border-radius: var(--radius) 0 0 var(--radius);
+  padding: 10px 0;
   flex-shrink: 0;
+  width: 72px;
 }
 
-.canvas-rail .icon-btn {
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #fff;
+.editor-rail-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
   background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: var(--font-body);
 }
 
-.canvas-rail .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
+.editor-rail-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.editor-rail-tab.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.editor-rail-panel {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: none;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 16px;
+  max-height: 600px;
+  overflow-y: auto;
 }
 
 .canvas-stage-col {
   min-width: 0;
-}
-
-.canvas-toolbar {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  padding-left: 16px;
 }
 
 .canvas-stage {
@@ -1232,23 +1256,9 @@ input[type="range"] {
   background: var(--accent-light);
 }
 
-.icon-picker-grid,
-.icon-add-popover .template-grid {
-  grid-template-columns: repeat(6, 32px);
+.icon-picker-grid {
+  grid-template-columns: repeat(5, 36px);
   gap: 6px;
-}
-
-.icon-add-popover {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 6px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(4, 43, 36, 0.2);
-  padding: 10px;
-  z-index: 10;
 }
 
 /* Layers panel — right-hand sibling of the canvas stage. */
