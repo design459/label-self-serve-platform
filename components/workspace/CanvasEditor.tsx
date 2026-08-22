@@ -655,17 +655,25 @@ export default function CanvasEditor({
               )}
             </div>
 
-            {isDeletable(selected) && (
-              <>
-                <span className="toolbar-divider" />
-                <button type="button" className="icon-btn" title="Duplicate" onClick={() => duplicateElement(selected.id)}>
-                  <Copy size={14} />
-                </button>
-                <button type="button" className="icon-btn icon-btn-danger" title="Delete" onClick={() => deleteElement(selected.id)}>
-                  <Trash2 size={14} />
-                </button>
-              </>
-            )}
+            <span className="toolbar-divider" />
+            <button
+              type="button"
+              className="icon-btn"
+              title={isDeletable(selected) ? "Duplicate" : "Required label content can't be duplicated"}
+              disabled={!isDeletable(selected)}
+              onClick={() => duplicateElement(selected.id)}
+            >
+              <Copy size={14} />
+            </button>
+            <button
+              type="button"
+              className="icon-btn icon-btn-danger"
+              title={isDeletable(selected) ? "Delete" : "Required label content can't be deleted"}
+              disabled={!isDeletable(selected)}
+              onClick={() => deleteElement(selected.id)}
+            >
+              <Trash2 size={14} />
+            </button>
           </div>
         )}
 
