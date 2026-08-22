@@ -21,6 +21,16 @@ import {
   AlignVerticalJustifyStart,
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  List,
+  ListOrdered,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { FONT_PRESETS, THEME_PRESETS } from "@/lib/types";
 import { CanvasElement, IconId, isDeletable, backgroundCss } from "@/lib/canvasLayout";
@@ -97,6 +107,7 @@ export default function CanvasEditor({
   const [zoom, setZoom] = useState(1);
   const [alignMenuOpen, setAlignMenuOpen] = useState(false);
   const [layersMenuOpen, setLayersMenuOpen] = useState(false);
+  const [effectsMenuOpen, setEffectsMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { widthMm, heightMm, scale, stageW, stageH } = useMemo(() => {
@@ -145,6 +156,12 @@ export default function CanvasEditor({
   function deleteElement(id: string) {
     onElementsChange(elements.filter((e) => e.id !== id));
     onSelectedIdChange(null);
+  }
+
+  function toggleLock(id: string) {
+    const el = elements.find((e) => e.id === id);
+    if (!el) return;
+    updateElement(id, { locked: !el.locked } as Partial<CanvasElement>);
   }
 
   function duplicateElement(id: string) {
@@ -364,8 +381,194 @@ export default function CanvasEditor({
                     }
                   />
                 )}
+
+                <span className="toolbar-divider" />
+
+                <button
+                  type="button"
+                  className={`icon-btn ${selected.style.bold ? "icon-btn-choice selected" : ""}`}
+                  title="Bold"
+                  onClick={() => updateElement(selected.id, { style: { ...selected.style, bold: !selected.style.bold } } as Partial<CanvasElement>)}
+                >
+                  <Bold size={14} />
+                </button>
+                <button
+                  type="button"
+                  className={`icon-btn ${selected.style.italic ? "icon-btn-choice selected" : ""}`}
+                  title="Italic"
+                  onClick={() => updateElement(selected.id, { style: { ...selected.style, italic: !selected.style.italic } } as Partial<CanvasElement>)}
+                >
+                  <Italic size={14} />
+                </button>
+                <button
+                  type="button"
+                  className={`icon-btn ${selected.style.underline ? "icon-btn-choice selected" : ""}`}
+                  title="Underline"
+                  onClick={() =>
+                    updateElement(selected.id, { style: { ...selected.style, underline: !selected.style.underline } } as Partial<CanvasElement>)
+                  }
+                >
+                  <Underline size={14} />
+                </button>
+
+                <span className="toolbar-divider" />
+
+                <button
+                  type="button"
+                  className={`icon-btn ${(selected.style.textAlign ?? "left") === "left" ? "icon-btn-choice selected" : ""}`}
+                  title="Align text left"
+                  onClick={() => updateElement(selected.id, { style: { ...selected.style, textAlign: "left" } } as Partial<CanvasElement>)}
+                >
+                  <AlignLeft size={14} />
+                </button>
+                <button
+                  type="button"
+                  className={`icon-btn ${selected.style.textAlign === "center" ? "icon-btn-choice selected" : ""}`}
+                  title="Align text center"
+                  onClick={() => updateElement(selected.id, { style: { ...selected.style, textAlign: "center" } } as Partial<CanvasElement>)}
+                >
+                  <AlignCenter size={14} />
+                </button>
+                <button
+                  type="button"
+                  className={`icon-btn ${selected.style.textAlign === "right" ? "icon-btn-choice selected" : ""}`}
+                  title="Align text right"
+                  onClick={() => updateElement(selected.id, { style: { ...selected.style, textAlign: "right" } } as Partial<CanvasElement>)}
+                >
+                  <AlignRight size={14} />
+                </button>
+
+                <span className="toolbar-divider" />
+
+                <div className="stepper" title="Line height">
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    title="Tighter line height"
+                    onClick={() =>
+                      updateElement(selected.id, {
+                        style: { ...selected.style, lineHeight: Math.max(0.8, (selected.style.lineHeight ?? 1.35) - 0.1) },
+                      } as Partial<CanvasElement>)
+                    }
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <span>{(selected.style.lineHeight ?? 1.35).toFixed(1)}</span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    title="Looser line height"
+                    onClick={() =>
+                      updateElement(selected.id, {
+                        style: { ...selected.style, lineHeight: Math.min(2.5, (selected.style.lineHeight ?? 1.35) + 0.1) },
+                      } as Partial<CanvasElement>)
+                    }
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+
+                <div className="stepper" title="Letter spacing">
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    title="Tighter letter spacing"
+                    onClick={() =>
+                      updateElement(selected.id, {
+                        style: { ...selected.style, letterSpacing: Math.max(-1, (selected.style.letterSpacing ?? 0) - 0.1) },
+                      } as Partial<CanvasElement>)
+                    }
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <span>{(selected.style.letterSpacing ?? 0).toFixed(1)}</span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    title="Wider letter spacing"
+                    onClick={() =>
+                      updateElement(selected.id, {
+                        style: { ...selected.style, letterSpacing: Math.min(3, (selected.style.letterSpacing ?? 0) + 0.1) },
+                      } as Partial<CanvasElement>)
+                    }
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+
+                <span className="toolbar-divider" />
+
+                <button
+                  type="button"
+                  className={`icon-btn ${selected.style.listStyle === "bullet" ? "icon-btn-choice selected" : ""}`}
+                  title="Bullet list"
+                  onClick={() =>
+                    updateElement(selected.id, {
+                      style: { ...selected.style, listStyle: selected.style.listStyle === "bullet" ? "none" : "bullet" },
+                    } as Partial<CanvasElement>)
+                  }
+                >
+                  <List size={14} />
+                </button>
+                <button
+                  type="button"
+                  className={`icon-btn ${selected.style.listStyle === "number" ? "icon-btn-choice selected" : ""}`}
+                  title="Numbered list"
+                  onClick={() =>
+                    updateElement(selected.id, {
+                      style: { ...selected.style, listStyle: selected.style.listStyle === "number" ? "none" : "number" },
+                    } as Partial<CanvasElement>)
+                  }
+                >
+                  <ListOrdered size={14} />
+                </button>
+
+                <span className="toolbar-divider" />
+
+                <div className="canvas-toolbar-dropdown-wrap">
+                  <button
+                    type="button"
+                    className="canvas-toolbar-text-btn"
+                    onClick={() => {
+                      setEffectsMenuOpen((o) => !o);
+                      setAlignMenuOpen(false);
+                      setLayersMenuOpen(false);
+                    }}
+                  >
+                    Effects
+                  </button>
+                  {effectsMenuOpen && (
+                    <div className="canvas-toolbar-dropdown">
+                      {(["none", "shadow", "outline"] as const).map((effect) => (
+                        <button
+                          key={effect}
+                          type="button"
+                          className={`btn btn-outline ${(selected.style.textEffect ?? "none") === effect ? "canvas-toolbar-dropdown-item-active" : ""}`}
+                          style={{ padding: "4px 10px", fontSize: 12, textTransform: "capitalize" }}
+                          onClick={() => {
+                            updateElement(selected.id, { style: { ...selected.style, textEffect: effect } } as Partial<CanvasElement>);
+                            setEffectsMenuOpen(false);
+                          }}
+                        >
+                          {effect}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
+
+            <span className="toolbar-divider" />
+
+            <button
+              type="button"
+              className={`icon-btn ${selected.locked ? "icon-btn-choice selected" : ""}`}
+              title={selected.locked ? "Unlock (allow drag/resize)" : "Lock (prevent drag/resize)"}
+              onClick={() => toggleLock(selected.id)}
+            >
+              {selected.locked ? <Lock size={14} /> : <Unlock size={14} />}
+            </button>
 
             <span className="toolbar-divider" />
 
@@ -459,6 +662,8 @@ export default function CanvasEditor({
                 position={px}
                 style={{ zIndex: i, outline: selectedId === el.id ? "2px solid var(--select-blue)" : "1px dashed rgba(0,0,0,0.15)" }}
                 resizeHandleStyles={selectedId === el.id ? SELECTED_HANDLE_STYLES : undefined}
+                disableDragging={!!el.locked}
+                enableResizing={!el.locked}
                 onDragStop={(_e, d) => {
                   updateElement(el.id, { x: (d.x / dispW) * 100, y: (d.y / dispH) * 100 } as Partial<CanvasElement>);
                 }}

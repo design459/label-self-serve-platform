@@ -69,6 +69,59 @@ function safeFontSize(n: number, fallback = 2.6): number {
   return Math.min(12, Math.max(1.5, Number.isFinite(n) ? n : fallback));
 }
 
+function safeTextAlign(v: unknown): "left" | "center" | "right" {
+  return v === "center" || v === "right" ? v : "left";
+}
+
+function safeLineHeight(v: unknown, fallback: number): number {
+  return typeof v === "number" && Number.isFinite(v) ? Math.min(2.5, Math.max(0.8, v)) : fallback;
+}
+
+function safeLetterSpacing(v: unknown, fallback = 0): number {
+  return typeof v === "number" && Number.isFinite(v) ? Math.min(3, Math.max(-1, v)) : fallback;
+}
+
+// Bold/italic/underline/align/line-height/letter-spacing/text-effect —
+// re-validated here independently of lib/canvasLayout.ts's own allowlist
+// (same "never trust a value crossing a boundary exactly once" policy as
+// safeFontFamily()/safeColor()/safeFontSize() above). boldDefault lets
+// callers preserve pre-existing hardcoded weights (productName was always
+// bold) for rows saved before this field existed, where style.bold is
+// simply absent rather than explicitly false.
+function textDecorationCss(style: { bold?: boolean; italic?: boolean; underline?: boolean; textAlign?: string; lineHeight?: number; letterSpacing?: number; textEffect?: string }, opts: { boldDefault?: boolean; lineHeightDefault?: number } = {}): string {
+  const bold = typeof style.bold === "boolean" ? style.bold : !!opts.boldDefault;
+  const parts: string[] = [`font-weight:${bold ? 700 : 400}`];
+  if (style.italic) parts.push("font-style:italic");
+  if (style.underline) parts.push("text-decoration:underline");
+  parts.push(`text-align:${safeTextAlign(style.textAlign)}`);
+  parts.push(`line-height:${safeLineHeight(style.lineHeight, opts.lineHeightDefault ?? 1.35)}`);
+  const letterSpacing = safeLetterSpacing(style.letterSpacing);
+  if (letterSpacing) parts.push(`letter-spacing:${letterSpacing}mm`);
+  if (style.textEffect === "shadow") parts.push("text-shadow:0.3mm 0.3mm 0 rgba(0,0,0,0.35)");
+  else if (style.textEffect === "outline") parts.push("-webkit-text-stroke:0.2mm #ffffff; paint-order:stroke fill");
+  return parts.join("; ");
+}
+
+// Renders body copy either as a plain paragraph (nl2br, same as before this
+// feature existed) or, when the element's listStyle is set, as a real
+// <ul>/<ol> — one <li> per non-blank line. Never used for productName/
+// tagline: those interpolate an already-escaped ctx string directly, and
+// running that through nl2br() a second time would double-escape it.
+function renderTextBody(text: string | undefined | null, style: { listStyle?: string }): string {
+  if (style.listStyle === "bullet" || style.listStyle === "number") {
+    const items = (text || "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => `<li>${esc(line)}</li>`)
+      .join("");
+    if (!items) return `<p style="margin:0;">—</p>`;
+    const tag = style.listStyle === "bullet" ? "ul" : "ol";
+    return `<${tag} style="margin:0; padding-left:4mm;">${items}</${tag}>`;
+  }
+  return `<p style="margin:0;">${nl2br(text) || "—"}</p>`;
+}
+
 const PANEL_HEADING: Record<PanelStyle, string> = {
   supplement_facts: "Supplement Facts",
   nutrition_facts: "Nutrition Facts",
@@ -115,12 +168,14 @@ function renderElement(el: CanvasElement, ctx: RenderCtx): string {
     }
     case "productName": {
       const pair = safeFontFamily(el.style.fontId, ctx.font);
-      return `<p style="${rect} margin:0; font-family:${pair.heading}; font-weight:700; font-size:${safeFontSize(el.style.fontSize, 5)}mm; color:${safeColor(el.style.color, "#1f4d38")};">${ctx.headingText}</p>`;
+      const deco = textDecorationCss(el.style, { boldDefault: true });
+      return `<p style="${rect} margin:0; font-family:${pair.heading}; font-size:${safeFontSize(el.style.fontSize, 5)}mm; color:${safeColor(el.style.color, "#1f4d38")}; ${deco};">${ctx.headingText}</p>`;
     }
     case "tagline": {
       if (!ctx.marketingTagline) return "";
       const pair = safeFontFamily(el.style.fontId, ctx.font);
-      return `<p style="${rect} margin:0; font-family:${pair.body}; font-size:${safeFontSize(el.style.fontSize, 2.4)}mm; color:${safeColor(el.style.color, "#5b6472")};">${esc(ctx.marketingTagline)}</p>`;
+      const deco = textDecorationCss(el.style);
+      return `<p style="${rect} margin:0; font-family:${pair.body}; font-size:${safeFontSize(el.style.fontSize, 2.4)}mm; color:${safeColor(el.style.color, "#5b6472")}; ${deco};">${esc(ctx.marketingTagline)}</p>`;
     }
     case "claims": {
       if (!ctx.regulatory.claims) return "";
@@ -141,18 +196,20 @@ function renderElement(el: CanvasElement, ctx: RenderCtx): string {
       const pair = safeFontFamily(el.style.fontId, ctx.font);
       const size = safeFontSize(el.style.fontSize);
       const color = safeColor(el.style.color);
-      return `<div style="${rect} font-family:${pair.body}; font-size:${size}mm; line-height:1.35; color:${color};">
+      const deco = textDecorationCss(el.style);
+      return `<div style="${rect} font-family:${pair.body}; font-size:${size}mm; color:${color};">
         <p style="margin:0 0 1mm; font-family:${pair.heading}; font-weight:700; font-size:${size}mm; color:${color};">Ingredients</p>
-        <p style="margin:0;">${nl2br(ctx.regulatory.ingredients) || "—"}</p>
+        <div style="${deco};">${renderTextBody(ctx.regulatory.ingredients, el.style)}</div>
       </div>`;
     }
     case "statutoryMarks": {
       const pair = safeFontFamily(el.style.fontId, ctx.font);
       const size = safeFontSize(el.style.fontSize);
       const color = safeColor(el.style.color);
-      return `<div style="${rect} font-family:${pair.body}; font-size:${size}mm; line-height:1.35; color:${color};">
+      const deco = textDecorationCss(el.style);
+      return `<div style="${rect} font-family:${pair.body}; font-size:${size}mm; color:${color};">
         <p style="margin:0 0 1mm; font-family:${pair.heading}; font-weight:700; font-size:${size}mm; color:${color};">Statutory marks</p>
-        <p style="margin:0;">${nl2br(ctx.regulatory.statutory_marks) || "—"}</p>
+        <div style="${deco};">${renderTextBody(ctx.regulatory.statutory_marks, el.style)}</div>
       </div>`;
     }
     case "nutritionPanel": {
@@ -169,14 +226,16 @@ function renderElement(el: CanvasElement, ctx: RenderCtx): string {
       const pair = safeFontFamily(el.style.fontId, ctx.font);
       const size = safeFontSize(el.style.fontSize, 2.2);
       const color = safeColor(el.style.color);
-      return `<div style="${rect} display:flex; align-items:center; justify-content:space-between; font-family:${pair.body}; font-size:${size}mm; color:${color}; border-top:0.2mm solid #e2e5ea; padding-top:1mm;">
+      const deco = textDecorationCss(el.style);
+      return `<div style="${rect} display:flex; align-items:center; justify-content:space-between; font-family:${pair.body}; font-size:${size}mm; color:${color}; border-top:0.2mm solid #e2e5ea; padding-top:1mm; ${deco};">
         <div>Batch: ${esc(ctx.regulatory.batch_code) || "—"} &nbsp; Mfd: ${esc(ctx.regulatory.manufacture_date) || "—"} &nbsp; Exp: ${esc(ctx.regulatory.expiry_date) || "—"}<br/>SKU: ${esc(ctx.skuCode)}</div>
         ${ctx.qrDataUrl ? `<img src="${ctx.qrDataUrl}" style="width:14mm; height:14mm;" alt="qr" />` : ""}
       </div>`;
     }
     case "text": {
       const pair = safeFontFamily(el.style.fontId, ctx.font);
-      return `<div style="${rect} font-family:${pair.body}; font-size:${safeFontSize(el.style.fontSize, 3)}mm; line-height:1.3; color:${safeColor(el.style.color)};">${nl2br(el.content)}</div>`;
+      const deco = textDecorationCss(el.style, { lineHeightDefault: 1.3 });
+      return `<div style="${rect} font-family:${pair.body}; font-size:${safeFontSize(el.style.fontSize, 3)}mm; color:${safeColor(el.style.color)}; ${deco};">${renderTextBody(el.content, el.style)}</div>`;
     }
     case "icon": {
       const markup = ICON_SVG_MARKUP[el.iconId] ?? ICON_SVG_MARKUP.leaf;

@@ -1,10 +1,50 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, CSSProperties } from "react";
 import { FONT_PRESETS } from "@/lib/types";
-import { CanvasElement, backgroundCss } from "@/lib/canvasLayout";
+import { CanvasElement, ElementStyle, backgroundCss } from "@/lib/canvasLayout";
 import { Summary } from "./types";
 import { ICON_COMPONENTS } from "./iconRegistry";
+
+// Mirrors lib/artboard.ts's textDecorationCss()/renderTextBody() as React
+// style objects/JSX instead of a raw CSS string, so the editor's on-canvas
+// preview and the generated proof always agree on bold/italic/underline/
+// align/line-height/letter-spacing/list/effect. boldDefault preserves the
+// pre-existing hardcoded weight (productName was always bold) for elements
+// saved before these fields existed, where style.bold is simply absent.
+function textStyle(style: Pick<ElementStyle, "bold" | "italic" | "underline" | "textAlign" | "lineHeight" | "letterSpacing" | "textEffect">, boldDefault = false): CSSProperties {
+  const bold = typeof style.bold === "boolean" ? style.bold : boldDefault;
+  const css: CSSProperties = {
+    fontWeight: bold ? 700 : 400,
+    fontStyle: style.italic ? "italic" : undefined,
+    textDecoration: style.underline ? "underline" : undefined,
+    textAlign: style.textAlign ?? "left",
+    lineHeight: style.lineHeight ?? 1.35,
+    letterSpacing: style.letterSpacing ? `${style.letterSpacing}mm` : undefined,
+  };
+  if (style.textEffect === "shadow") css.textShadow = "1px 1px 0 rgba(0,0,0,0.35)";
+  else if (style.textEffect === "outline") css.WebkitTextStroke = "0.5px #fff";
+  return css;
+}
+
+function renderBody(text: string, listStyle?: ElementStyle["listStyle"]) {
+  if (listStyle === "bullet" || listStyle === "number") {
+    const items = (text || "")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (items.length === 0) return <p style={{ margin: 0 }}>—</p>;
+    const Tag = listStyle === "bullet" ? "ul" : "ol";
+    return (
+      <Tag style={{ margin: 0, paddingLeft: 16 }}>
+        {items.map((l, i) => (
+          <li key={i}>{l}</li>
+        ))}
+      </Tag>
+    );
+  }
+  return <p style={{ margin: 0 }}>{text || "—"}</p>;
+}
 
 interface Props {
   summary: Summary;
@@ -102,13 +142,13 @@ export function ElementPreview({ el, scale, summary, logoUrl }: { el: CanvasElem
     }
     case "productName":
       return (
-        <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontWeight: 700, fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden" }}>
+        <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", ...textStyle(el.style, true) }}>
           {order.displayName || order.productName || "Product Name"}
         </p>
       );
     case "tagline":
       return (
-        <p style={{ margin: 0, fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden" }}>
+        <p style={{ margin: 0, fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", ...textStyle(el.style) }}>
           {order.marketingTagline || ""}
         </p>
       );
@@ -139,16 +179,16 @@ export function ElementPreview({ el, scale, summary, logoUrl }: { el: CanvasElem
       );
     case "ingredients":
       return (
-        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", lineHeight: 1.3 }}>
+        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden" }}>
           <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontWeight: 700 }}>Ingredients</p>
-          <p style={{ margin: 0 }}>{regulatory?.ingredients || "—"}</p>
+          <div style={textStyle(el.style)}>{renderBody(regulatory?.ingredients || "", el.style.listStyle)}</div>
         </div>
       );
     case "statutoryMarks":
       return (
-        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", lineHeight: 1.3 }}>
+        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden" }}>
           <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontWeight: 700 }}>Statutory marks</p>
-          <p style={{ margin: 0 }}>{regulatory?.statutory_marks || "—"}</p>
+          <div style={textStyle(el.style)}>{renderBody(regulatory?.statutory_marks || "", el.style.listStyle)}</div>
         </div>
       );
     case "nutritionPanel": {
@@ -171,7 +211,20 @@ export function ElementPreview({ el, scale, summary, logoUrl }: { el: CanvasElem
     }
     case "footer":
       return (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize) * 0.85, color: el.style.color, overflow: "hidden", borderTop: "1px solid #e2e5ea", paddingTop: 2 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontFamily: family(el.style.fontId, "body"),
+            fontSize: px(el.style.fontSize) * 0.85,
+            color: el.style.color,
+            overflow: "hidden",
+            borderTop: "1px solid #e2e5ea",
+            paddingTop: 2,
+            ...textStyle(el.style),
+          }}
+        >
           <div>
             Batch: {regulatory?.batch_code || "—"} SKU: {order.skuCode}
           </div>
@@ -179,8 +232,8 @@ export function ElementPreview({ el, scale, summary, logoUrl }: { el: CanvasElem
       );
     case "text":
       return (
-        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", whiteSpace: "pre-wrap" }}>
-          {el.content}
+        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", whiteSpace: "pre-wrap", ...textStyle(el.style) }}>
+          {el.style.listStyle && el.style.listStyle !== "none" ? renderBody(el.content, el.style.listStyle) : el.content}
         </div>
       );
     default:

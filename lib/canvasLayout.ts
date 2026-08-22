@@ -18,10 +18,22 @@ import {
 // freeform "text" type has its own content, since it has no other source.
 export const HEX = /^#[0-9a-fA-F]{6}$/;
 
+export type TextAlign = "left" | "center" | "right";
+export type ListStyle = "none" | "bullet" | "number";
+export type TextEffect = "none" | "shadow" | "outline";
+
 export interface ElementStyle {
   fontId: string;
   fontSize: number; // mm
   color: string; // #rrggbb
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  textAlign?: TextAlign;
+  lineHeight?: number; // unitless multiplier
+  letterSpacing?: number; // mm
+  listStyle?: ListStyle;
+  textEffect?: TextEffect;
 }
 
 interface ElementBase {
@@ -30,6 +42,7 @@ interface ElementBase {
   y: number;
   w: number;
   h: number;
+  locked?: boolean; // prevents drag/resize on canvas; still editable via the toolbar's text/color/etc. controls
 }
 
 export type BoundElementType =
@@ -200,6 +213,45 @@ function safeFontId(v: unknown, fallback: string): string {
 
 function safeIconId(v: unknown): IconId {
   return typeof v === "string" && (ICON_ALLOWLIST as readonly string[]).includes(v) ? (v as IconId) : "leaf";
+}
+
+function safeTextAlign(v: unknown): TextAlign {
+  return v === "center" || v === "right" ? v : "left";
+}
+
+function safeLineHeight(v: unknown, fallback = 1.35): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? Math.min(2.5, Math.max(0.8, n)) : fallback;
+}
+
+function safeLetterSpacing(v: unknown, fallback = 0): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? Math.min(3, Math.max(-1, n)) : fallback;
+}
+
+function safeListStyle(v: unknown): ListStyle {
+  return v === "bullet" || v === "number" ? v : "none";
+}
+
+function safeTextEffect(v: unknown): TextEffect {
+  return v === "shadow" || v === "outline" ? v : "none";
+}
+
+// Shared by every text-bearing element type (freeform "text" and the bound
+// heading/body types) so the rich-formatting fields get the same
+// allowlist/clamp treatment everywhere, regardless of which branch below
+// builds the element.
+function richStyleFields(style: Record<string, unknown>) {
+  return {
+    bold: style.bold === true,
+    italic: style.italic === true,
+    underline: style.underline === true,
+    textAlign: safeTextAlign(style.textAlign),
+    lineHeight: safeLineHeight(style.lineHeight),
+    letterSpacing: safeLetterSpacing(style.letterSpacing),
+    listStyle: safeListStyle(style.listStyle),
+    textEffect: safeTextEffect(style.textEffect),
+  };
 }
 
 export type LayoutVariant = "classic" | "photo-focus" | "centered";
@@ -410,6 +462,7 @@ export function validateCanvasElements(
       y: clampPct(el.y, 5),
       w: clampPct(el.w, 20),
       h: clampPct(el.h, 10),
+      locked: el.locked === true,
     };
 
     if (type === "photo") {
@@ -456,6 +509,7 @@ export function validateCanvasElements(
           fontId: safeFontId(style.fontId, ctx.orderFontId),
           fontSize: clampFontSize(style.fontSize, 3),
           color: safeHex(style.color, "#1b2430"),
+          ...richStyleFields(style),
         },
       });
     } else if (BOUND_ELEMENT_TYPES.includes(type as BoundElementType)) {
@@ -470,6 +524,7 @@ export function validateCanvasElements(
           fontId: safeFontId(style.fontId, ctx.orderFontId),
           fontSize: clampFontSize(style.fontSize, 2.6),
           color: safeHex(style.color, "#1b2430"),
+          ...richStyleFields(style),
         },
       });
     }

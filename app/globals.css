@@ -1288,6 +1288,12 @@ input[type="range"] {
   font-weight: 600;
 }
 
+.canvas-toolbar-dropdown-item-active {
+  border-color: var(--select-blue);
+  background: var(--select-blue-light);
+  color: var(--select-blue);
+}
+
 .element-content-editor {
   margin-bottom: 0;
 }
