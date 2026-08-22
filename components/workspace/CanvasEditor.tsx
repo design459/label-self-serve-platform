@@ -166,7 +166,7 @@ export default function CanvasEditor({
         </button>
         <button type="button" className={`editor-rail-tab ${activeTab === "photo" ? "active" : ""}`} onClick={() => toggleTab("photo")}>
           <ImagePlus size={20} />
-          <span>Photo</span>
+          <span>Logo</span>
         </button>
       </div>
 
@@ -194,9 +194,9 @@ export default function CanvasEditor({
           )}
           {activeTab === "photo" && (
             <>
-              <p className="wizard-section-label">Photo</p>
+              <p className="wizard-section-label">Logo</p>
               <button type="button" className="btn btn-block" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-                {uploading ? "Uploading…" : logoUrl ? "Replace photo" : "Upload a photo"}
+                {uploading ? "Uploading…" : logoUrl ? "Replace logo" : "Upload a logo"}
               </button>
             </>
           )}
@@ -268,7 +268,7 @@ export default function CanvasEditor({
             )}
             <div className="btn-row" style={{ marginTop: 0, flexWrap: "wrap", alignItems: "center" }}>
               {selected.type === "photo" ? (
-                <button type="button" className="icon-btn" title="Replace photo" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+                <button type="button" className="icon-btn" title="Replace logo" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
                   <ImageUp size={18} />
                 </button>
               ) : selected.type === "icon" ? (

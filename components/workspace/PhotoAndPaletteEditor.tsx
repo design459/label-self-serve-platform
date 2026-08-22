@@ -26,13 +26,13 @@ export default function PhotoAndPaletteEditor({ token, summary, locked, onSaved 
     const res = await fetch(`/api/workspace/${token}/logo`, { method: "POST", body: form });
     const data = await safeJson(res);
     setBusy(false);
-    if (!res.ok) return setError(data?.error || "Couldn't upload that photo.");
+    if (!res.ok) return setError(data?.error || "Couldn't upload that logo.");
     onSaved();
   }
 
   return (
     <div className="card">
-      <h2>2. Your product photo</h2>
+      <h2>2. Upload company logo</h2>
       {error && <div className="error-box">{error}</div>}
       <input
         type="file"
@@ -41,7 +41,7 @@ export default function PhotoAndPaletteEditor({ token, summary, locked, onSaved 
         onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
       />
       {summary.hasLogo && (
-        <p className="field-hint">Photo uploaded ✓ — choose a file again to replace it, or drag/resize/reposition it directly on the canvas below.</p>
+        <p className="field-hint">Logo uploaded ✓ — choose a file again to replace it, or drag/resize/reposition it directly on the canvas below.</p>
       )}
     </div>
   );

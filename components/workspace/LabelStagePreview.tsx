@@ -78,7 +78,7 @@ export function ElementPreview({ el, scale, summary, logoUrl }: { el: CanvasElem
               }}
             />
           ) : (
-            <span className="field-hint">Photo</span>
+            <span className="field-hint">Logo</span>
           )}
         </div>
       );
