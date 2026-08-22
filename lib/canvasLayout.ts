@@ -145,8 +145,53 @@ function clampFontSize(v: unknown, fallback: number): number {
   return Math.min(12, Math.max(1.5, n));
 }
 
-function safeHex(v: unknown, fallback: string): string {
+export function safeHex(v: unknown, fallback: string): string {
   return typeof v === "string" && HEX.test(v) ? v : fallback;
+}
+
+export interface GradientStop {
+  offset: number; // 0-100
+  color: string; // #rrggbb
+}
+
+export interface BackgroundGradient {
+  angle: number; // degrees, 0-360
+  stops: GradientStop[];
+}
+
+const MAX_GRADIENT_STOPS = 6;
+
+// Coerces an arbitrary (client-supplied) value into a safe stop list: every
+// entry gets a clamped offset and an allowlist-checked color, and the list
+// is capped in length — used both when persisting (marketing route) and
+// nowhere else needs to trust a stop shape it didn't just build itself.
+export function safeGradientStops(stops: unknown): GradientStop[] {
+  if (!Array.isArray(stops)) return [];
+  return stops.slice(0, MAX_GRADIENT_STOPS).map((s) => {
+    const raw = (s ?? {}) as Record<string, unknown>;
+    const offset = typeof raw.offset === "number" && Number.isFinite(raw.offset) ? Math.min(100, Math.max(0, raw.offset)) : 0;
+    return { offset, color: safeHex(raw.color, "#ffffff") };
+  });
+}
+
+// Single source of truth for turning a theme's background fields into a CSS
+// `background` value — shared by the server renderer (lib/artboard.ts) and
+// the client-side live previews (CanvasEditor.tsx, LabelStagePreview.tsx)
+// so all three always agree on what a given theme actually looks like.
+export function backgroundCss(theme: {
+  backgroundColor: string;
+  backgroundType?: "color" | "gradient";
+  backgroundGradient?: BackgroundGradient | null;
+}): string {
+  const solid = safeHex(theme.backgroundColor, "#ffffff");
+  if (theme.backgroundType === "gradient" && theme.backgroundGradient && theme.backgroundGradient.stops.length >= 2) {
+    const angle = Number.isFinite(theme.backgroundGradient.angle) ? ((theme.backgroundGradient.angle % 360) + 360) % 360 : 45;
+    const stops = safeGradientStops(theme.backgroundGradient.stops)
+      .map((s) => `${s.color} ${s.offset}%`)
+      .join(", ");
+    return `linear-gradient(${angle}deg, ${stops})`;
+  }
+  return solid;
 }
 
 function safeFontId(v: unknown, fallback: string): string {

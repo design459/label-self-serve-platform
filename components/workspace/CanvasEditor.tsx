@@ -23,15 +23,14 @@ import {
   AlignVerticalJustifyEnd,
 } from "lucide-react";
 import { FONT_PRESETS, THEME_PRESETS } from "@/lib/types";
-import { CanvasElement, IconId, isDeletable } from "@/lib/canvasLayout";
-import { Summary } from "./types";
+import { CanvasElement, IconId, isDeletable, backgroundCss } from "@/lib/canvasLayout";
+import { Summary, ThemeEdits } from "./types";
 import IconPicker from "./IconPicker";
 import LayoutVariantPicker from "./LayoutVariantPicker";
 import BackgroundPanel from "./BackgroundPanel";
 import { ElementPreview } from "./LabelStagePreview";
 
 const STAGE_MAX_WIDTH = 640;
-const HEX = /^#[0-9a-fA-F]{6}$/;
 
 // Circular corner handles, shown only on the selected element — everything
 // else about resizing (hit area, cursor) is re-resizable's default; this
@@ -69,8 +68,8 @@ interface Props {
   onLogoUploaded: () => void;
   selectedId: string | null;
   onSelectedIdChange: (id: string | null) => void;
-  backgroundColor: string;
-  onBackgroundColorChange: (color: string, opts?: ChangeOpts) => void;
+  theme: ThemeEdits;
+  onThemeChange: (patch: Partial<ThemeEdits>, opts?: ChangeOpts) => void;
 }
 
 function randomId(): string {
@@ -88,8 +87,8 @@ export default function CanvasEditor({
   onLogoUploaded,
   selectedId,
   onSelectedIdChange,
-  backgroundColor,
-  onBackgroundColorChange,
+  theme,
+  onThemeChange,
 }: Props) {
   const { order, regulatory, panel } = summary;
   const template = summary.templates.find((t) => t.id === order.selectedTemplateId) ?? summary.templates[0];
@@ -285,13 +284,19 @@ export default function CanvasEditor({
 
       {activeTab === "background" && (
         <BackgroundPanel
-          value={backgroundColor}
-          onChange={onBackgroundColorChange}
-          projectColors={THEME_PRESETS.map((p) => p.backgroundColor)}
+          theme={theme}
+          onChange={onThemeChange}
           brandColors={[
             { label: "Primary", color: order.theme?.primaryColor ?? THEME_PRESETS[0].primaryColor },
             { label: "Accent", color: order.theme?.accentColor ?? THEME_PRESETS[0].accentColor },
           ]}
+          gradientPresets={THEME_PRESETS.map((p) => ({
+            angle: 45,
+            stops: [
+              { offset: 0, color: p.primaryColor },
+              { offset: 100, color: p.accentColor },
+            ],
+          }))}
           onClose={() => setActiveTab(null)}
         />
       )}
@@ -299,7 +304,7 @@ export default function CanvasEditor({
       <div className="canvas-stage-col">
         <div
           className="canvas-stage"
-          style={{ width: dispW, height: dispH, background: HEX.test(backgroundColor) ? backgroundColor : "#fff" }}
+          style={{ width: dispW, height: dispH, background: backgroundCss(theme) }}
           onClick={(e) => {
             if (e.target === e.currentTarget) onSelectedIdChange(null);
           }}

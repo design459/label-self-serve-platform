@@ -97,7 +97,16 @@ export interface PackFormatTemplate {
 export interface Theme {
   primaryColor: string;
   accentColor: string;
+  // backgroundColor is always kept up to date even in "gradient" mode (the
+  // last solid color the customer had), so switching the Color/Gradient
+  // toggle back to Color has something sane to land on.
   backgroundColor: string;
+  backgroundType?: "color" | "gradient";
+  backgroundGradient?: { angle: number; stops: { offset: number; color: string }[] } | null;
+  // Colors the customer has explicitly saved to this order's palette via
+  // the background editor's "+" button — separate from the fixed
+  // THEME_PRESETS swatches, which are the same for every order.
+  customColors?: string[];
 }
 
 export const THEME_PRESETS: Theme[] = [

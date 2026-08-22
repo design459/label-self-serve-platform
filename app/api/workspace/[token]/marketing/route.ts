@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOrderByToken } from "@/lib/workspaceAuth";
 import { supabaseAdmin, logAudit } from "@/lib/supabaseServer";
 import { FONT_PRESETS, THEME_PRESETS } from "@/lib/types";
-import { HEX } from "@/lib/canvasLayout";
+import { HEX, safeGradientStops } from "@/lib/canvasLayout";
 import { apiCatch } from "@/lib/apiError";
+
+const MAX_CUSTOM_COLORS = 12;
 
 // Writes the customer's free-text brand name/tagline and their default font
 // (the seed value new canvas elements pick up — see lib/canvasLayout.ts).
@@ -26,13 +28,32 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
 
     const fontId = FONT_PRESETS.some((f) => f.id === body.fontId) ? body.fontId : order.font_id;
 
-    // backgroundColor is the only theme field the editor's "Edit background"
-    // panel exposes — primaryColor/accentColor are preserved from whatever
-    // the order already had (or a sane default), never accepted as free
-    // text here, same allowlist/format-validation reasoning as fontId.
+    // backgroundColor/backgroundType/backgroundGradient/customColors are the
+    // theme fields the editor's "Edit background" panel exposes —
+    // primaryColor/accentColor are preserved from whatever the order
+    // already had (or a sane default), never accepted as free text here,
+    // same allowlist/format-validation reasoning as fontId.
     const currentTheme = order.theme ?? THEME_PRESETS[0];
     const backgroundColor = typeof body.backgroundColor === "string" && HEX.test(body.backgroundColor) ? body.backgroundColor : currentTheme.backgroundColor;
-    const theme = { ...currentTheme, backgroundColor };
+    const backgroundType = body.backgroundType === "gradient" ? "gradient" : body.backgroundType === "color" ? "color" : currentTheme.backgroundType ?? "color";
+
+    const rawStops = body.backgroundGradient && typeof body.backgroundGradient === "object" ? safeGradientStops(body.backgroundGradient.stops) : [];
+    const backgroundGradient =
+      backgroundType === "gradient" && rawStops.length >= 2
+        ? {
+            angle:
+              typeof body.backgroundGradient?.angle === "number" && Number.isFinite(body.backgroundGradient.angle)
+                ? ((body.backgroundGradient.angle % 360) + 360) % 360
+                : 45,
+            stops: rawStops,
+          }
+        : currentTheme.backgroundGradient ?? null;
+
+    const customColors = Array.isArray(body.customColors)
+      ? Array.from(new Set(body.customColors.filter((c: unknown): c is string => typeof c === "string" && HEX.test(c)))).slice(0, MAX_CUSTOM_COLORS)
+      : currentTheme.customColors ?? [];
+
+    const theme = { ...currentTheme, backgroundColor, backgroundType, backgroundGradient, customColors };
 
     const db = supabaseAdmin();
     const { error: updateError } = await db

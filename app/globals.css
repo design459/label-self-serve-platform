@@ -1347,14 +1347,100 @@ input[type="range"] {
   color: var(--ink);
 }
 
-.bg-side-panel-tab {
-  margin: 0;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--select-blue);
-  color: var(--select-blue);
-  font-weight: 600;
+/* Color/Pattern tabs — Pattern is always disabled (see BackgroundPanel.tsx
+   comment): shown so the panel reads the same as the reference, not hidden,
+   but never clickable. */
+.bg-tab-row {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: -1px;
+}
+
+.bg-tab {
+  background: none;
+  border: none;
+  padding: 0 0 8px;
   font-size: 13px;
-  width: fit-content;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.bg-tab.active {
+  color: var(--select-blue);
+  border-bottom-color: var(--select-blue);
+}
+
+.bg-tab:disabled {
+  color: var(--line);
+  cursor: not-allowed;
+}
+
+/* Color/Gradient segmented toggle. */
+.bg-segmented {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bg-segment {
+  flex: 1;
+  padding: 7px 0;
+  background: var(--paper);
+  border: none;
+  border-left: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.bg-segment:first-child {
+  border-left: none;
+}
+
+.bg-segment.active {
+  background: var(--select-blue-light);
+  color: var(--select-blue);
+}
+
+/* Circular swatches (Project colors / Brand colors / Gradient presets) —
+   distinct from the square `.swatch` used elsewhere in the app, matching
+   the reference panel's circular color chips. */
+.bg-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bg-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.bg-swatch.selected {
+  outline: 2px solid var(--select-blue);
+  outline-offset: 1px;
+}
+
+.bg-swatch-none {
+  background: var(--paper);
+}
+
+.bg-swatch-add {
+  background: var(--editor-bg);
+  border-style: dashed;
 }
 
 .bg-sv-square {
@@ -1399,6 +1485,81 @@ input[type="range"] {
   box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35);
   transform: translate(-50%, -50%);
   pointer-events: none;
+}
+
+.bg-angle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bg-angle-row input[type="range"] {
+  flex: 1;
+}
+
+.bg-angle-row input[type="number"] {
+  width: 56px;
+}
+
+.bg-gradient-bar {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  margin-top: 8px;
+  touch-action: none;
+}
+
+.bg-gradient-stop {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.35);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+}
+
+.bg-gradient-stop.selected {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 0 0 3px var(--select-blue-light), 0 0 0 1.5px var(--select-blue);
+}
+
+.bg-stops-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bg-stops-header label {
+  margin: 0;
+}
+
+.bg-stop-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.bg-stop-row.selected {
+  border-color: var(--select-blue);
+  background: var(--select-blue-light);
+}
+
+.bg-stop-row input[type="number"] {
+  width: 48px;
+}
+
+.bg-stop-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Full-page label editor ("Edit label" now opens its own page instead of a

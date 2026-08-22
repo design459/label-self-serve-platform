@@ -1,5 +1,5 @@
 import { FontPairing, NutritionField, PackFormatTemplate, PanelStyle, ProductCategory, RegulatoryContent, Theme, FONT_PRESETS } from "./types";
-import { CanvasElement, HEX } from "./canvasLayout";
+import { CanvasElement, HEX, backgroundCss } from "./canvasLayout";
 import { ICON_SVG_MARKUP } from "./iconAssets";
 
 // Compliance boundary, enforced by construction, not just convention:
@@ -221,7 +221,7 @@ export function buildArtboardHtml(input: ArtboardInput): string {
     position: relative;
     width: ${widthMm}mm;
     height: ${heightMm}mm;
-    background: ${theme.backgroundColor};
+    background: ${backgroundCss(theme)};
     font-family: ${font.body};
     color: #1b2430;
     overflow: hidden;

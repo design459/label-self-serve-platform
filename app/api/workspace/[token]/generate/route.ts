@@ -6,6 +6,7 @@ import { buildDefaultLayout } from "@/lib/canvasLayout";
 import { generateQrDataUrl } from "@/lib/labelCodes";
 import { launchBrowser } from "@/lib/launchBrowser";
 import { CategoryPanelTemplate, FONT_PRESETS, PackFormatTemplate, RegulatoryContent, Theme } from "@/lib/types";
+import { safeGradientStops } from "@/lib/canvasLayout";
 import { apiCatch } from "@/lib/apiError";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -16,7 +17,22 @@ function validTheme(theme: unknown): Theme | null {
   if (typeof t.primaryColor !== "string" || !HEX.test(t.primaryColor)) return null;
   if (typeof t.accentColor !== "string" || !HEX.test(t.accentColor)) return null;
   if (typeof t.backgroundColor !== "string" || !HEX.test(t.backgroundColor)) return null;
-  return { primaryColor: t.primaryColor, accentColor: t.accentColor, backgroundColor: t.backgroundColor };
+
+  const backgroundType = t.backgroundType === "gradient" ? "gradient" : "color";
+  const rawGradient = t.backgroundGradient as Record<string, unknown> | null | undefined;
+  const stops = rawGradient ? safeGradientStops(rawGradient.stops) : [];
+  const backgroundGradient =
+    backgroundType === "gradient" && stops.length >= 2
+      ? { angle: typeof rawGradient?.angle === "number" && Number.isFinite(rawGradient.angle) ? rawGradient.angle : 45, stops }
+      : null;
+
+  return {
+    primaryColor: t.primaryColor,
+    accentColor: t.accentColor,
+    backgroundColor: t.backgroundColor,
+    backgroundType,
+    backgroundGradient,
+  };
 }
 
 export async function POST(req: NextRequest, { params }: { params: { token: string } }) {

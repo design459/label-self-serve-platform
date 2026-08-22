@@ -2,11 +2,9 @@
 
 import { useMemo } from "react";
 import { FONT_PRESETS } from "@/lib/types";
-import { CanvasElement } from "@/lib/canvasLayout";
+import { CanvasElement, backgroundCss } from "@/lib/canvasLayout";
 import { Summary } from "./types";
 import { ICON_COMPONENTS } from "./iconRegistry";
-
-const HEX = /^#[0-9a-fA-F]{6}$/;
 
 interface Props {
   summary: Summary;
@@ -36,12 +34,17 @@ export default function LabelStagePreview({ summary, elements, logoUrl, maxWidth
 
   if (!template) return null;
 
-  const backgroundColor = summary.order.theme?.backgroundColor;
+  const theme = summary.order.theme;
 
   return (
     <div
       className="canvas-stage"
-      style={{ width: stageW, height: stageH, margin: 0, background: backgroundColor && HEX.test(backgroundColor) ? backgroundColor : "#fff" }}
+      style={{
+        width: stageW,
+        height: stageH,
+        margin: 0,
+        background: theme ? backgroundCss(theme) : "#fff",
+      }}
     >
       {elements.map((el, i) => (
         <div

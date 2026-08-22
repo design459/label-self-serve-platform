@@ -1,21 +1,24 @@
 "use client";
 
-import { useRef } from "react";
-import { X } from "lucide-react";
-
-const HEX = /^#[0-9a-fA-F]{6}$/;
+import { useRef, useState } from "react";
+import { X, Ban, Plus, Trash2 } from "lucide-react";
+import { HEX, BackgroundGradient, GradientStop } from "@/lib/canvasLayout";
+import { ThemeEdits } from "./types";
 
 interface ChangeOpts {
   coalesce?: boolean;
 }
 
 interface Props {
-  value: string;
-  onChange: (hex: string, opts?: ChangeOpts) => void;
-  projectColors: string[];
+  theme: ThemeEdits;
+  onChange: (patch: Partial<ThemeEdits>, opts?: ChangeOpts) => void;
   brandColors: { label: string; color: string }[];
+  gradientPresets: BackgroundGradient[];
   onClose: () => void;
 }
+
+const MAX_CUSTOM_COLORS = 12;
+const MAX_STOPS = 6;
 
 function hexToRgb(hex: string) {
   const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
@@ -64,25 +67,51 @@ function hsvToHex(h: number, s: number, v: number) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+function gradientCss(g: BackgroundGradient): string {
+  const stops = [...g.stops]
+    .sort((a, b) => a.offset - b.offset)
+    .map((s) => `${s.color} ${s.offset}%`)
+    .join(", ");
+  return `linear-gradient(90deg, ${stops})`;
+}
+
+function defaultGradient(seed: string): BackgroundGradient {
+  return { angle: 45, stops: [{ offset: 0, color: seed }, { offset: 100, color: "#ffffff" }] };
+}
+
 // A right-docked panel matching the reference design tool's "Edit
-// background" panel — the parts of it with a real equivalent in this app
-// (a hex color, the preset swatches, the order's own brand colors) plus a
-// self-contained hue/saturation-value picker. Pattern/Gradient/Opacity
-// controls from the reference are left out: this app's background is a
-// single solid hex (lib/artboard.ts renders it as plain CSS `background`),
-// so those would just be inert chrome with nothing behind them.
-export default function BackgroundPanel({ value, onChange, projectColors, brandColors, onClose }: Props) {
-  const safeHex = HEX.test(value) ? value : "#ffffff";
-  const { h, s, v } = rgbToHsv(hexToRgb(safeHex).r, hexToRgb(safeHex).g, hexToRgb(safeHex).b);
+// background" panel: Color/Gradient modes, a project-colors row the
+// customer can add to, the order's own brand colors, a self-contained
+// hue/saturation-value picker for solid colors, and a real angle+stops
+// gradient editor. The "Pattern" tab is shown but disabled — this app's
+// background is always a solid color or a linear gradient end to end
+// (lib/artboard.ts), so a pattern-fill tab would have nothing behind it.
+export default function BackgroundPanel({ theme, onChange, brandColors, gradientPresets, onClose }: Props) {
+  const [selectedStop, setSelectedStop] = useState(0);
   const svRef = useRef<HTMLDivElement | null>(null);
   const hueRef = useRef<HTMLDivElement | null>(null);
+  const gradientBarRef = useRef<HTMLDivElement | null>(null);
+
+  const isGradient = theme.backgroundType === "gradient";
+  const gradient = theme.backgroundGradient ?? defaultGradient(theme.backgroundColor);
+  const activeColor = HEX.test(theme.backgroundColor) ? theme.backgroundColor : "#ffffff";
+  const { h, s, v } = rgbToHsv(hexToRgb(activeColor).r, hexToRgb(activeColor).g, hexToRgb(activeColor).b);
+
+  function setSolidColor(color: string, opts?: ChangeOpts) {
+    onChange({ backgroundType: "color", backgroundColor: color }, opts);
+  }
+
+  function addCurrentColorToProject() {
+    if (!HEX.test(activeColor) || theme.customColors.includes(activeColor)) return;
+    onChange({ customColors: [...theme.customColors, activeColor].slice(-MAX_CUSTOM_COLORS) });
+  }
 
   function dragSv(startEvent: React.PointerEvent) {
     const rect = svRef.current!.getBoundingClientRect();
     const move = (clientX: number, clientY: number) => {
       const x = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
       const y = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
-      onChange(hsvToHex(h, x * 100, (1 - y) * 100), { coalesce: true });
+      setSolidColor(hsvToHex(h, x * 100, (1 - y) * 100), { coalesce: true });
     };
     move(startEvent.clientX, startEvent.clientY);
     const onMove = (e: PointerEvent) => move(e.clientX, e.clientY);
@@ -98,7 +127,44 @@ export default function BackgroundPanel({ value, onChange, projectColors, brandC
     const rect = hueRef.current!.getBoundingClientRect();
     const move = (clientX: number) => {
       const x = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-      onChange(hsvToHex(x * 360, s, v), { coalesce: true });
+      setSolidColor(hsvToHex(x * 360, s, v), { coalesce: true });
+    };
+    move(startEvent.clientX);
+    const onMove = (e: PointerEvent) => move(e.clientX);
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function updateGradient(patch: Partial<BackgroundGradient>, coalesce = true) {
+    onChange({ backgroundGradient: { ...gradient, ...patch } }, { coalesce });
+  }
+
+  function updateStop(i: number, patch: Partial<GradientStop>, coalesce = true) {
+    updateGradient({ stops: gradient.stops.map((st, idx) => (idx === i ? { ...st, ...patch } : st)) }, coalesce);
+  }
+
+  function addStop() {
+    if (gradient.stops.length >= MAX_STOPS) return;
+    const stops = [...gradient.stops, { offset: 50, color: "#ffffff" }];
+    updateGradient({ stops }, false);
+    setSelectedStop(stops.length - 1);
+  }
+
+  function removeStop(i: number) {
+    if (gradient.stops.length <= 2) return;
+    updateGradient({ stops: gradient.stops.filter((_, idx) => idx !== i) }, false);
+    setSelectedStop(0);
+  }
+
+  function dragStop(i: number, startEvent: React.PointerEvent) {
+    const rect = gradientBarRef.current!.getBoundingClientRect();
+    const move = (clientX: number) => {
+      const pct = Math.round(Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100)));
+      updateStop(i, { offset: pct }, true);
     };
     move(startEvent.clientX);
     const onMove = (e: PointerEvent) => move(e.clientX);
@@ -119,75 +185,221 @@ export default function BackgroundPanel({ value, onChange, projectColors, brandC
         </button>
       </div>
 
-      <p className="bg-side-panel-tab">Color</p>
+      <div className="bg-tab-row">
+        <button type="button" className="bg-tab active">
+          Color
+        </button>
+        <button type="button" className="bg-tab" disabled title="Pattern fills aren't available for label backgrounds">
+          Pattern
+        </button>
+      </div>
+
+      <div className="bg-segmented">
+        <button
+          type="button"
+          className={`bg-segment ${!isGradient ? "active" : ""}`}
+          onClick={() => onChange({ backgroundType: "color" })}
+        >
+          Color
+        </button>
+        <button
+          type="button"
+          className={`bg-segment ${isGradient ? "active" : ""}`}
+          onClick={() => onChange({ backgroundType: "gradient", backgroundGradient: theme.backgroundGradient ?? defaultGradient(theme.backgroundColor) })}
+        >
+          Gradient
+        </button>
+      </div>
 
       <div className="field" style={{ marginBottom: 0 }}>
         <label>Project colors</label>
-        <div className="palette-row">
-          {projectColors.map((color, i) => (
-            <div
-              key={i}
-              className={`swatch ${value === color ? "selected" : ""}`}
-              style={{ background: color, boxShadow: "inset 0 0 0 1px var(--line)" }}
-              onClick={() => onChange(color)}
+        <div className="bg-swatch-row">
+          <button
+            type="button"
+            className="bg-swatch bg-swatch-none"
+            title="Reset to white"
+            onClick={() => setSolidColor("#ffffff")}
+          >
+            <Ban size={16} />
+          </button>
+          <button
+            type="button"
+            className={`bg-swatch ${!isGradient && activeColor === "#ffffff" ? "selected" : ""}`}
+            style={{ background: "#ffffff" }}
+            title="#ffffff"
+            onClick={() => setSolidColor("#ffffff")}
+          />
+          {theme.customColors.map((color) => (
+            <button
+              key={color}
+              type="button"
+              className={`bg-swatch ${!isGradient && activeColor === color ? "selected" : ""}`}
+              style={{ background: color }}
               title={color}
+              onClick={() => setSolidColor(color)}
             />
           ))}
+          <button type="button" className="bg-swatch bg-swatch-add" title="Save the current color" onClick={addCurrentColorToProject}>
+            <Plus size={16} />
+          </button>
         </div>
       </div>
 
       {brandColors.length > 0 && (
         <div className="field" style={{ marginBottom: 0 }}>
           <label>Brand colors</label>
-          <div className="palette-row">
+          <div className="bg-swatch-row">
             {brandColors.map((bc) => (
-              <div
+              <button
                 key={bc.label}
-                className={`swatch ${value === bc.color ? "selected" : ""}`}
-                style={{ background: bc.color, boxShadow: "inset 0 0 0 1px var(--line)" }}
-                onClick={() => onChange(bc.color)}
+                type="button"
+                className={`bg-swatch ${!isGradient && activeColor === bc.color ? "selected" : ""}`}
+                style={{ background: bc.color }}
                 title={`${bc.label} — ${bc.color}`}
+                onClick={() => setSolidColor(bc.color)}
               />
             ))}
           </div>
         </div>
       )}
 
-      <div
-        ref={svRef}
-        className="bg-sv-square"
-        style={{ backgroundColor: hsvToHex(h, 100, 100) }}
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          dragSv(e);
-        }}
-      >
-        <div className="bg-sv-handle" style={{ left: `${s}%`, top: `${100 - v}%` }} />
-      </div>
+      {!isGradient ? (
+        <>
+          <div
+            ref={svRef}
+            className="bg-sv-square"
+            style={{ backgroundColor: hsvToHex(h, 100, 100) }}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              dragSv(e);
+            }}
+          >
+            <div className="bg-sv-handle" style={{ left: `${s}%`, top: `${100 - v}%` }} />
+          </div>
 
-      <div
-        ref={hueRef}
-        className="bg-hue-bar"
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          dragHue(e);
-        }}
-      >
-        <div className="bg-hue-handle" style={{ left: `${(h / 360) * 100}%` }} />
-      </div>
+          <div
+            ref={hueRef}
+            className="bg-hue-bar"
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              dragHue(e);
+            }}
+          >
+            <div className="bg-hue-handle" style={{ left: `${(h / 360) * 100}%` }} />
+          </div>
 
-      <div className="field" style={{ marginBottom: 0 }}>
-        <label>Hex color</label>
-        <input
-          type="text"
-          value={value}
-          maxLength={7}
-          onChange={(e) => {
-            const v2 = e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`;
-            onChange(v2, { coalesce: true });
-          }}
-        />
-      </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Hex color</label>
+            <input
+              type="text"
+              value={theme.backgroundColor}
+              maxLength={7}
+              onChange={(e) => {
+                const v2 = e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`;
+                setSolidColor(v2, { coalesce: true });
+              }}
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Angle</label>
+            <div className="bg-angle-row">
+              <input
+                type="range"
+                min={0}
+                max={360}
+                value={gradient.angle}
+                onChange={(e) => updateGradient({ angle: Number(e.target.value) }, true)}
+              />
+              <input
+                type="number"
+                min={0}
+                max={360}
+                value={Math.round(gradient.angle)}
+                onChange={(e) => updateGradient({ angle: Math.min(360, Math.max(0, Number(e.target.value))) }, true)}
+              />
+              <span>°</span>
+            </div>
+          </div>
+
+          <div
+            ref={gradientBarRef}
+            className="bg-gradient-bar"
+            style={{ background: gradientCss(gradient) }}
+          >
+            {gradient.stops.map((stop, i) => (
+              <div
+                key={i}
+                className={`bg-gradient-stop ${selectedStop === i ? "selected" : ""}`}
+                style={{ left: `${stop.offset}%`, background: stop.color }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  setSelectedStop(i);
+                  (e.target as HTMLElement).setPointerCapture(e.pointerId);
+                  dragStop(i, e);
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="field" style={{ marginBottom: 0 }}>
+            <div className="bg-stops-header">
+              <label>Stops</label>
+              <button type="button" className="icon-btn" title="Add stop" onClick={addStop} disabled={gradient.stops.length >= MAX_STOPS}>
+                <Plus size={14} />
+              </button>
+            </div>
+            {gradient.stops.map((stop, i) => (
+              <div key={i} className={`bg-stop-row ${selectedStop === i ? "selected" : ""}`} onClick={() => setSelectedStop(i)}>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={Math.round(stop.offset)}
+                  onChange={(e) => updateStop(i, { offset: Math.min(100, Math.max(0, Number(e.target.value))) }, true)}
+                />
+                <span>%</span>
+                <input
+                  type="text"
+                  value={stop.color}
+                  maxLength={7}
+                  onChange={(e) => {
+                    const v2 = e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`;
+                    updateStop(i, { color: v2 }, true);
+                  }}
+                />
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-danger"
+                  title="Remove stop"
+                  disabled={gradient.stops.length <= 2}
+                  onClick={() => removeStop(i)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Gradient presets</label>
+            <div className="bg-swatch-row">
+              {gradientPresets.map((preset, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="bg-swatch"
+                  style={{ background: gradientCss(preset) }}
+                  title={`Preset ${i + 1}`}
+                  onClick={() => onChange({ backgroundGradient: preset })}
+                />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

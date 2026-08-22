@@ -5,13 +5,20 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Undo2, Redo2 } from "lucide-react";
 import { CanvasElement } from "@/lib/canvasLayout";
 import { THEME_PRESETS } from "@/lib/types";
-import { Summary, safeJson } from "./types";
+import { Summary, ThemeEdits, safeJson } from "./types";
 import CanvasEditor from "./CanvasEditor";
 
 interface Snapshot {
   elements: CanvasElement[];
-  backgroundColor: string;
+  theme: ThemeEdits;
 }
+
+const DEFAULT_THEME_EDITS: ThemeEdits = {
+  backgroundColor: THEME_PRESETS[0].backgroundColor,
+  backgroundType: "color",
+  backgroundGradient: null,
+  customColors: [],
+};
 
 // How long a run of coalescing edits (typing, dragging a slider) stays
 // merged into a single undo step before the next edit starts a fresh one —
@@ -30,13 +37,13 @@ export default function EditorPage({ token }: { token: string }) {
   const [elements, setElementsRaw] = useState<CanvasElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [backgroundColor, setBackgroundColorRaw] = useState(THEME_PRESETS[0].backgroundColor);
+  const [theme, setThemeRaw] = useState<ThemeEdits>(DEFAULT_THEME_EDITS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Undo/redo history over {elements, backgroundColor} together, so
-  // undoing a background change and undoing an element edit share one
-  // timeline, matching how a single Ctrl+Z is expected to behave.
+  // Undo/redo history over {elements, theme} together, so undoing a
+  // background change and undoing an element edit share one timeline,
+  // matching how a single Ctrl+Z is expected to behave.
   const [past, setPast] = useState<Snapshot[]>([]);
   const [future, setFuture] = useState<Snapshot[]>([]);
   const lastEditAtRef = useRef(0);
@@ -44,38 +51,38 @@ export default function EditorPage({ token }: { token: string }) {
   function commit(patch: Partial<Snapshot>, coalesce: boolean) {
     const now = Date.now();
     if (!coalesce || now - lastEditAtRef.current >= COALESCE_MS) {
-      setPast((p) => [...p, { elements, backgroundColor }]);
+      setPast((p) => [...p, { elements, theme }]);
       setFuture([]);
     }
     lastEditAtRef.current = now;
     if (patch.elements !== undefined) setElementsRaw(patch.elements);
-    if (patch.backgroundColor !== undefined) setBackgroundColorRaw(patch.backgroundColor);
+    if (patch.theme !== undefined) setThemeRaw(patch.theme);
   }
 
   function setElements(els: CanvasElement[], opts?: { coalesce?: boolean }) {
     commit({ elements: els }, opts?.coalesce ?? false);
   }
 
-  function setBackgroundColor(color: string, opts?: { coalesce?: boolean }) {
-    commit({ backgroundColor: color }, opts?.coalesce ?? false);
+  function setTheme(patch: Partial<ThemeEdits>, opts?: { coalesce?: boolean }) {
+    commit({ theme: { ...theme, ...patch } }, opts?.coalesce ?? false);
   }
 
   function undo() {
     if (past.length === 0) return;
     const prev = past[past.length - 1];
-    setFuture((f) => [{ elements, backgroundColor }, ...f]);
+    setFuture((f) => [{ elements, theme }, ...f]);
     setPast((p) => p.slice(0, -1));
     setElementsRaw(prev.elements);
-    setBackgroundColorRaw(prev.backgroundColor);
+    setThemeRaw(prev.theme);
   }
 
   function redo() {
     if (future.length === 0) return;
     const next = future[0];
-    setPast((p) => [...p, { elements, backgroundColor }]);
+    setPast((p) => [...p, { elements, theme }]);
     setFuture((f) => f.slice(1));
     setElementsRaw(next.elements);
-    setBackgroundColorRaw(next.backgroundColor);
+    setThemeRaw(next.theme);
   }
 
   const load = useCallback(async () => {
@@ -90,7 +97,15 @@ export default function EditorPage({ token }: { token: string }) {
       setSummary(data);
       setLogoUrl(data.logoUrl);
       setElementsRaw((prev) => (prev.length === 0 ? data.elements : prev));
-      if (data.order.theme?.backgroundColor) setBackgroundColorRaw(data.order.theme.backgroundColor);
+      if (data.order.theme) {
+        const t = data.order.theme;
+        setThemeRaw({
+          backgroundColor: t.backgroundColor ?? DEFAULT_THEME_EDITS.backgroundColor,
+          backgroundType: t.backgroundType === "gradient" ? "gradient" : "color",
+          backgroundGradient: t.backgroundGradient ?? null,
+          customColors: Array.isArray(t.customColors) ? t.customColors : [],
+        });
+      }
       setPast([]);
       setFuture([]);
     } catch {
@@ -142,7 +157,12 @@ export default function EditorPage({ token }: { token: string }) {
       fetch(`/api/workspace/${token}/marketing`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ backgroundColor }),
+        body: JSON.stringify({
+          backgroundColor: theme.backgroundColor,
+          backgroundType: theme.backgroundType,
+          backgroundGradient: theme.backgroundGradient,
+          customColors: theme.customColors,
+        }),
       }),
     ]);
     const layoutData = await safeJson(layoutRes);
@@ -224,8 +244,8 @@ export default function EditorPage({ token }: { token: string }) {
             onLogoUploaded={refreshLogo}
             selectedId={selectedId}
             onSelectedIdChange={setSelectedId}
-            backgroundColor={backgroundColor}
-            onBackgroundColorChange={setBackgroundColor}
+            theme={theme}
+            onThemeChange={setTheme}
           />
         </div>
       </div>
