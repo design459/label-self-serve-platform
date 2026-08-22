@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOrderByToken } from "@/lib/workspaceAuth";
 import { supabaseAdmin, storageBucket, signedUrlFor, logAudit } from "@/lib/supabaseServer";
 import { buildArtboardHtml, ArtboardInput } from "@/lib/artboard";
+import { buildDefaultLayout } from "@/lib/canvasLayout";
 import { generateQrDataUrl } from "@/lib/labelCodes";
 import { launchBrowser } from "@/lib/launchBrowser";
 import { CategoryPanelTemplate, FONT_PRESETS, PackFormatTemplate, RegulatoryContent, Theme } from "@/lib/types";
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
 
     const panel = panelTemplate as CategoryPanelTemplate | null;
     const font = FONT_PRESETS.find((f) => f.id === order.font_id) || FONT_PRESETS[0];
+    const elements =
+      order.canvas_layout ?? buildDefaultLayout(template as PackFormatTemplate, order.category, panel, { fontId: order.font_id });
 
     let logoDataUrl: string | null = null;
     if (logo?.storage_path) {
@@ -93,7 +96,7 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       template: template as PackFormatTemplate,
       theme,
       font,
-      imagePosition: order.image_position,
+      elements,
       logoDataUrl,
       regulatory: reg,
       qrDataUrl,

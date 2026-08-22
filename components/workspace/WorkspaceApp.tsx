@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { THEME_PRESETS, Theme } from "@/lib/types";
 import { Summary, safeJson } from "./types";
 import WorkspaceSidebar from "./WorkspaceSidebar";
+import SheetPicker from "./SheetPicker";
 import PhotoAndPaletteEditor from "./PhotoAndPaletteEditor";
 import MarketingCopyEditor from "./MarketingCopyEditor";
 import CategoryPanelEditor from "./CategoryPanelEditor";
-import GenerateAndPreview from "./GenerateAndPreview";
+import LabelPreview from "./LabelPreview";
 import SubmitForReview from "./SubmitForReview";
 
 export default function WorkspaceApp({ token }: { token: string }) {
@@ -95,10 +96,11 @@ export default function WorkspaceApp({ token }: { token: string }) {
   }
 
   const sections = [
-    <PhotoAndPaletteEditor key="photo" token={token} summary={summary} theme={theme} onThemeChange={setTheme} locked={locked} onSaved={load} />,
+    <SheetPicker key="sheet" token={token} summary={summary} locked={locked} onSaved={load} />,
+    <PhotoAndPaletteEditor key="photo" token={token} summary={summary} locked={locked} onSaved={load} />,
     <MarketingCopyEditor key="marketing" token={token} summary={summary} locked={locked} onSaved={load} />,
     <CategoryPanelEditor key="regulatory" token={token} summary={summary} locked={locked} onSaved={load} />,
-    <GenerateAndPreview key="generate" token={token} summary={summary} theme={theme} onGenerated={load} />,
+    <LabelPreview key="design" token={token} summary={summary} theme={theme} onThemeChange={setTheme} onGenerated={load} />,
     <SubmitForReview key="submit" token={token} summary={summary} onSubmitted={load} />,
   ];
 

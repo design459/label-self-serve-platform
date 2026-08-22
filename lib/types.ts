@@ -1,3 +1,8 @@
+// CanvasElement is defined in ./canvasLayout, which itself imports several
+// types from this file — kept as a type-only import so there's no runtime
+// circular dependency (erased entirely at compile time).
+import type { CanvasElement } from "./canvasLayout";
+
 export type PackFormat = "pouch" | "capsule_bottle" | "jar" | "sachet";
 
 export const PACK_FORMATS: PackFormat[] = ["pouch", "capsule_bottle", "jar", "sachet"];
@@ -142,7 +147,11 @@ export interface LabelOrder {
   display_name: string | null;
   marketing_tagline: string | null;
   font_id: string;
+  // Superseded by the photo element's own imagePosition inside
+  // canvas_layout (see lib/canvasLayout.ts) — column kept, no longer
+  // actively written to.
   image_position: ImagePosition;
+  canvas_layout: CanvasElement[] | null;
   source: "staff" | "customer";
   access_token: string;
   status: LabelOrderStatus;

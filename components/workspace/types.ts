@@ -1,4 +1,5 @@
 import { CategoryPanelTemplate, ImagePosition, NutritionPanel, PackFormatTemplate, ProductCategory, Theme } from "@/lib/types";
+import { CanvasElement } from "@/lib/canvasLayout";
 
 // Mirrors the JSON shape returned by
 // app/api/workspace/[token]/summary/route.ts — kept local to the
@@ -24,6 +25,7 @@ export interface Summary {
   };
   templates: PackFormatTemplate[];
   hasLogo: boolean;
+  logoUrl: string | null;
   regulatory: {
     ingredients: string | null;
     claims: string | null;
@@ -34,6 +36,8 @@ export interface Summary {
     nutrition_panel: NutritionPanel | null;
   } | null;
   panel: CategoryPanelTemplate | null;
+  canvasLayout: CanvasElement[] | null;
+  elements: CanvasElement[];
   latestDesign: { id: string; revisionNumber: number; isSubmitted: boolean } | null;
   proofUrl: string | null;
   printUrl: string | null;

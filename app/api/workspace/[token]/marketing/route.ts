@@ -4,22 +4,14 @@ import { supabaseAdmin, logAudit } from "@/lib/supabaseServer";
 import { FONT_PRESETS } from "@/lib/types";
 import { apiCatch } from "@/lib/apiError";
 
-function clampPct(v: unknown): number {
-  const n = typeof v === "number" ? v : 50;
-  return Math.min(100, Math.max(0, n));
-}
-
-function clampScale(v: unknown): number {
-  const n = typeof v === "number" ? v : 1;
-  return Math.min(2, Math.max(1, n));
-}
-
-// Writes the customer's freely-editable style/marketing choices — never
-// regulatory data. font_id is checked against the FONT_PRESETS allowlist
-// rather than accepted as a free-text string: font-family values are
-// string-interpolated directly into an inline <style> block in
-// lib/artboard.ts, so free text there would be an injection risk the way a
-// plain text field (escaped via esc()) isn't.
+// Writes the customer's free-text brand name/tagline and their default font
+// (the seed value new canvas elements pick up — see lib/canvasLayout.ts).
+// Photo position now lives on the photo element itself, saved via
+// app/api/workspace/[token]/layout/route.ts, not here. font_id is checked
+// against the FONT_PRESETS allowlist rather than accepted as a free-text
+// string: font-family values are string-interpolated directly into inline
+// styles in lib/artboard.ts, so free text there would be an injection risk
+// the way a plain text field (escaped via esc()) isn't.
 export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
   try {
     const order = await getOrderByToken(params.token);
@@ -32,11 +24,6 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     if (!body) return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
 
     const fontId = FONT_PRESETS.some((f) => f.id === body.fontId) ? body.fontId : order.font_id;
-    const imagePosition = {
-      x: clampPct(body.imagePosition?.x),
-      y: clampPct(body.imagePosition?.y),
-      scale: clampScale(body.imagePosition?.scale),
-    };
 
     const db = supabaseAdmin();
     const { error: updateError } = await db
@@ -45,7 +32,6 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
         display_name: typeof body.displayName === "string" ? body.displayName : order.display_name,
         marketing_tagline: typeof body.marketingTagline === "string" ? body.marketingTagline : order.marketing_tagline,
         font_id: fontId,
-        image_position: imagePosition,
         updated_at: new Date().toISOString(),
       })
       .eq("id", order.id);

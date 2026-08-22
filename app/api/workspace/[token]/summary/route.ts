@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderByToken } from "@/lib/workspaceAuth";
 import { supabaseAdmin, signedUrlFor } from "@/lib/supabaseServer";
+import { buildDefaultLayout } from "@/lib/canvasLayout";
+import { PackFormatTemplate } from "@/lib/types";
 import { apiCatch } from "@/lib/apiError";
 
 // Without this, Next.js statically caches this GET handler's response in
@@ -41,11 +43,19 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
       db.from("category_panel_templates").select("*").eq("category", order.category).maybeSingle(),
     ]);
 
+  const logoUrl = logo?.storage_path ? await signedUrlFor(logo.storage_path) : null;
   const proofUrl = latestDesign?.proof_storage_path ? await signedUrlFor(latestDesign.proof_storage_path) : null;
   const printUrl =
     order.status === "approved" && latestDesign?.print_storage_path
       ? await signedUrlFor(latestDesign.print_storage_path)
       : null;
+
+  const selectedTemplate = (templates ?? []).find((t) => t.id === order.selected_template_id) ?? null;
+  const elements =
+    order.canvas_layout ??
+    (selectedTemplate
+      ? buildDefaultLayout(selectedTemplate as PackFormatTemplate, order.category, panel, { fontId: order.font_id })
+      : []);
 
   return NextResponse.json({
     order: {
@@ -67,8 +77,11 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     },
     templates: templates ?? [],
     hasLogo: Boolean(logo),
+    logoUrl,
     regulatory: regulatory ?? null,
     panel: panel ?? null,
+    canvasLayout: order.canvas_layout ?? null,
+    elements,
     latestDesign: latestDesign
       ? { id: latestDesign.id, revisionNumber: latestDesign.revision_number, isSubmitted: latestDesign.is_submitted }
       : null,

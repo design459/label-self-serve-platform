@@ -1,4 +1,4 @@
-const STEPS = ["Photo & palette", "Marketing copy", "Regulatory details", "Generate & preview", "Submit"];
+const STEPS = ["Label size", "Product photo", "Marketing copy", "Regulatory details", "Design your label", "Submit"];
 
 // Same presentational shape as components/admin/AppSidebar.tsx
 // ({activeIndex, footer}), just with customer-facing step labels — driven
