@@ -37,7 +37,7 @@ export default function SubmitForReview({ token, summary, onSubmitted }: Props) 
 
   return (
     <div className="card">
-      <h2>8. Submit for compliance approval</h2>
+      <h2>6. Submit for compliance approval</h2>
       <p className="field-hint">A reviewer on our side will approve this or return it with reasons.</p>
       {error && <div className="error-box">{error}</div>}
       <button className="btn" disabled={busy} onClick={submit}>

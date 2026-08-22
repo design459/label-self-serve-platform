@@ -64,7 +64,7 @@ export default function CategoryPanelEditor({ token, summary, locked, onSaved }:
 
   return (
     <div className="card">
-      <h2>6. Regulatory details — {CATEGORY_LABELS[summary.order.category]}</h2>
+      <h2>4. Regulatory details — {CATEGORY_LABELS[summary.order.category]}</h2>
       <p className="field-hint" style={{ marginTop: -8, marginBottom: 16 }}>
         Exact text only — this is what appears on the compliance-checked label. Never invented for you.
       </p>

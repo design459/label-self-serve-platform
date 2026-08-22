@@ -41,7 +41,7 @@ export default function MarketingCopyEditor({ token, summary, locked, onSaved }:
 
   return (
     <div className="card">
-      <h2>5. Marketing copy</h2>
+      <h2>3. Marketing copy</h2>
       <p className="field-hint" style={{ marginTop: -8, marginBottom: 16 }}>
         This is the wording shown on your label — brand name and a short tagline. Freely editable.
       </p>
