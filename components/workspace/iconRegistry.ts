@@ -1,0 +1,60 @@
+import {
+  Leaf,
+  ShieldCheck,
+  Heart,
+  Droplet,
+  Flame,
+  Recycle,
+  Award,
+  CircleCheck,
+  Sun,
+  Sprout,
+  Package,
+  Star,
+  Sparkles,
+  Zap,
+  Apple,
+  Wheat,
+  Milk,
+  Fish,
+  Gem,
+  Crown,
+  Snowflake,
+  Thermometer,
+  HeartPulse,
+  Truck,
+  type LucideIcon,
+} from "lucide-react";
+import { IconId } from "@/lib/canvasLayout";
+
+// Explicit named imports only (never `import * as Icons`) so Next's build
+// tree-shakes everything except these 24 — keeps the browser bundle small
+// despite lucide-react shipping 1000+ icons. Shared by IconPicker.tsx and
+// CanvasEditor.tsx's live preview so the picker glyph and canvas glyph can
+// never diverge.
+export const ICON_COMPONENTS: Record<IconId, LucideIcon> = {
+  leaf: Leaf,
+  "shield-check": ShieldCheck,
+  heart: Heart,
+  droplet: Droplet,
+  flame: Flame,
+  recycle: Recycle,
+  award: Award,
+  "circle-check": CircleCheck,
+  sun: Sun,
+  sprout: Sprout,
+  package: Package,
+  star: Star,
+  sparkles: Sparkles,
+  zap: Zap,
+  apple: Apple,
+  wheat: Wheat,
+  milk: Milk,
+  fish: Fish,
+  gem: Gem,
+  crown: Crown,
+  snowflake: Snowflake,
+  thermometer: Thermometer,
+  "heart-pulse": HeartPulse,
+  truck: Truck,
+};

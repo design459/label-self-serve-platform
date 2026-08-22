@@ -5,6 +5,7 @@ import {
   ImagePosition,
   PackFormatTemplate,
   ProductCategory,
+  ZoneLayout,
 } from "./types";
 
 // Freeform canvas layout — see supabase/migrations/0004_canvas_layout.sql.
@@ -76,10 +77,55 @@ export interface FreeTextElement extends ElementBase {
   content: string; // length-capped, escaped once at render time in lib/artboard.ts
 }
 
-export type CanvasElement = PhotoElement | BoundTextElement | ClaimsElement | FreeTextElement;
+// Curated, small set — not the full lucide catalog. Extend by adding an id
+// here plus a matching entry in lib/iconAssets.ts (render markup) and
+// components/workspace/iconRegistry.ts (picker/preview component).
+export const ICON_ALLOWLIST = [
+  "leaf", "shield-check", "heart", "droplet", "flame", "recycle",
+  "award", "circle-check", "sun", "sprout", "package", "star",
+  "sparkles", "zap", "apple", "wheat", "milk", "fish",
+  "gem", "crown", "snowflake", "thermometer", "heart-pulse", "truck",
+] as const;
+
+export type IconId = (typeof ICON_ALLOWLIST)[number];
+
+export interface IconElement extends ElementBase {
+  type: "icon";
+  iconId: IconId;
+  color: string; // #rrggbb — no ElementStyle, icons have no font
+}
+
+export type CanvasElement = PhotoElement | BoundTextElement | ClaimsElement | FreeTextElement | IconElement;
 
 export function isDeletable(el: CanvasElement): boolean {
-  return el.type === "text";
+  return el.type === "text" || el.type === "icon";
+}
+
+export function describeElement(el: CanvasElement): string {
+  switch (el.type) {
+    case "photo":
+      return "Photo";
+    case "productName":
+      return "Product name";
+    case "tagline":
+      return "Tagline";
+    case "claims":
+      return "Claims";
+    case "ingredients":
+      return "Ingredients";
+    case "statutoryMarks":
+      return "Statutory marks";
+    case "nutritionPanel":
+      return "Nutrition panel";
+    case "footer":
+      return "Footer";
+    case "icon":
+      return `Icon: ${el.iconId}`;
+    case "text":
+      return `Text: ${el.content.slice(0, 24)}${el.content.length > 24 ? "…" : ""}`;
+    default:
+      return "Element";
+  }
 }
 
 function newId(): string {
@@ -106,69 +152,34 @@ function safeFontId(v: unknown, fallback: string): string {
   return typeof v === "string" && FONT_PRESETS.some((f) => f.id === v) ? v : fallback;
 }
 
-// Maps each seeded pack_format_templates.zone_layout rect (see
-// supabase/migrations/0001_init.sql) into starter element positions, so a
-// customer who opens the editor for the first time sees their already-
-// collected data arranged sensibly instead of a blank canvas — "auto-fill
-// the area" without generating any new artwork.
-export function buildDefaultLayout(
-  template: PackFormatTemplate,
-  category: ProductCategory,
-  panel: CategoryPanelTemplate | null,
-  opts?: { fontId?: string; primaryColor?: string; accentColor?: string }
-): CanvasElement[] {
-  const fontId = opts?.fontId && FONT_PRESETS.some((f) => f.id === opts.fontId) ? opts.fontId : "sans-modern";
-  const primaryColor = opts?.primaryColor && HEX.test(opts.primaryColor) ? opts.primaryColor : "#1f4d38";
-  const accentColor = opts?.accentColor && HEX.test(opts.accentColor) ? opts.accentColor : "#2e6b4f";
-  const bodyColor = "#1b2430";
+function safeIconId(v: unknown): IconId {
+  return typeof v === "string" && (ICON_ALLOWLIST as readonly string[]).includes(v) ? (v as IconId) : "leaf";
+}
 
-  const { zones } = template.zone_layout;
-  const widthMm = template.trim_width_mm + template.bleed_mm * 2;
-  const heightMm = template.trim_height_mm + template.bleed_mm * 2;
+export type LayoutVariant = "classic" | "photo-focus" | "centered";
 
-  const header = zones.header;
-  // Square photo box sized from the header height, converted to a %-width
-  // using the sheet's mm aspect ratio — reproduces the old fixed
-  // `.photo-box { aspect-ratio: 1/1 }` behavior without hardcoding it.
-  const headerHPct = header.h; // % of heightMm
-  const headerHeightMm = (headerHPct / 100) * heightMm;
-  const photoWPct = Math.min(header.w * 0.6, (headerHeightMm / widthMm) * 100);
-  const gapPct = 2;
-  const textX = header.x + photoWPct + gapPct;
-  const textW = Math.max(10, header.w - photoWPct - gapPct);
+interface LayoutCtx {
+  zones: ZoneLayout["zones"];
+  widthMm: number;
+  heightMm: number;
+  fontId: string;
+  primaryColor: string;
+  accentColor: string;
+  bodyColor: string;
+}
 
+// Shared tail every variant reuses verbatim: claims/ingredients/statutory
+// marks/nutrition panel/footer never move between variants — only the
+// header block (photo + product name + tagline) differs. Keeping these
+// identical across variants means the compliance-relevant content always
+// starts in the same well-tested positions regardless of which starting
+// look a customer picks.
+function sharedTail(ctx: LayoutCtx): CanvasElement[] {
+  const { zones, fontId, accentColor, bodyColor } = ctx;
   const left = zones.left;
   const ingredientsH = left.h * 0.6;
   const statutoryH = left.h * 0.4;
-
-  const layout: CanvasElement[] = [
-    {
-      id: newId(),
-      type: "photo",
-      x: header.x,
-      y: header.y,
-      w: photoWPct,
-      h: header.h,
-      imagePosition: { x: 50, y: 50, scale: 1 },
-    },
-    {
-      id: newId(),
-      type: "productName",
-      x: textX,
-      y: header.y,
-      w: textW,
-      h: header.h * 0.55,
-      style: { fontId, fontSize: 5, color: primaryColor },
-    },
-    {
-      id: newId(),
-      type: "tagline",
-      x: textX,
-      y: header.y + header.h * 0.55,
-      w: textW,
-      h: header.h * 0.45,
-      style: { fontId, fontSize: 2.4, color: "#5b6472" },
-    },
+  return [
     {
       id: newId(),
       type: "claims",
@@ -215,9 +226,107 @@ export function buildDefaultLayout(
       style: { fontId, fontSize: 2.2, color: bodyColor },
     },
   ];
-
-  return layout;
 }
+
+// Today's exact original arrangement: photo left, name+tagline stacked
+// beside it, filling the rest of the header width.
+function buildClassicLayout(ctx: LayoutCtx): CanvasElement[] {
+  const { zones, widthMm, heightMm, fontId, primaryColor } = ctx;
+  const header = zones.header;
+  const headerHeightMm = (header.h / 100) * heightMm;
+  const photoWPct = Math.min(header.w * 0.6, (headerHeightMm / widthMm) * 100);
+  const gapPct = 2;
+  const textX = header.x + photoWPct + gapPct;
+  const textW = Math.max(10, header.w - photoWPct - gapPct);
+
+  return [
+    { id: newId(), type: "photo", x: header.x, y: header.y, w: photoWPct, h: header.h, imagePosition: { x: 50, y: 50, scale: 1 } },
+    { id: newId(), type: "productName", x: textX, y: header.y, w: textW, h: header.h * 0.55, style: { fontId, fontSize: 5, color: primaryColor } },
+    { id: newId(), type: "tagline", x: textX, y: header.y + header.h * 0.55, w: textW, h: header.h * 0.45, style: { fontId, fontSize: 2.4, color: "#5b6472" } },
+    ...sharedTail(ctx),
+  ];
+}
+
+// Bigger, wide photo across the whole header width; name/tagline stack
+// underneath instead of beside it — for customers who want the product
+// photo to dominate.
+function buildPhotoFocusLayout(ctx: LayoutCtx): CanvasElement[] {
+  const { zones, fontId, primaryColor } = ctx;
+  const header = zones.header;
+  const photoH = header.h * 0.7;
+  const nameH = header.h * 0.18;
+  const tagH = header.h * 0.12;
+
+  return [
+    { id: newId(), type: "photo", x: header.x, y: header.y, w: header.w, h: photoH, imagePosition: { x: 50, y: 50, scale: 1 } },
+    { id: newId(), type: "productName", x: header.x, y: header.y + photoH, w: header.w, h: nameH, style: { fontId, fontSize: 5, color: primaryColor } },
+    { id: newId(), type: "tagline", x: header.x, y: header.y + photoH + nameH, w: header.w, h: tagH, style: { fontId, fontSize: 2.4, color: "#5b6472" } },
+    ...sharedTail(ctx),
+  ];
+}
+
+// Photo centered above the name/tagline, both narrower than the full
+// header width — a calmer, more symmetrical starting look. Ingredients/
+// statutory marks/nutrition panel/footer are unchanged from classic (see
+// sharedTail) — this variant only changes the header block's arrangement,
+// not every element's position, and does not center text within its box.
+function buildCenteredLayout(ctx: LayoutCtx): CanvasElement[] {
+  const { zones, fontId, primaryColor } = ctx;
+  const header = zones.header;
+  const photoW = header.w * 0.4;
+  const photoX = header.x + (header.w - photoW) / 2;
+  const photoH = header.h * 0.55;
+  const nameH = header.h * 0.25;
+  const tagH = header.h * 0.2;
+
+  return [
+    { id: newId(), type: "photo", x: photoX, y: header.y, w: photoW, h: photoH, imagePosition: { x: 50, y: 50, scale: 1 } },
+    { id: newId(), type: "productName", x: header.x, y: header.y + photoH, w: header.w, h: nameH, style: { fontId, fontSize: 5, color: primaryColor } },
+    { id: newId(), type: "tagline", x: header.x, y: header.y + photoH + nameH, w: header.w, h: tagH, style: { fontId, fontSize: 2.4, color: "#5b6472" } },
+    ...sharedTail(ctx),
+  ];
+}
+
+// Maps each seeded pack_format_templates.zone_layout rect (see
+// supabase/migrations/0001_init.sql) into starter element positions, so a
+// customer who opens the editor for the first time sees their already-
+// collected data arranged sensibly instead of a blank canvas — "auto-fill
+// the area" without generating any new artwork. `variant` picks between a
+// few hand-designed starting arrangements (a small "template gallery," not
+// an external one) — default reproduces the original single arrangement
+// byte-for-byte, so every existing caller that doesn't pass a variant is
+// unaffected.
+export function buildDefaultLayout(
+  template: PackFormatTemplate,
+  category: ProductCategory,
+  panel: CategoryPanelTemplate | null,
+  opts?: { fontId?: string; primaryColor?: string; accentColor?: string; variant?: LayoutVariant }
+): CanvasElement[] {
+  const ctx: LayoutCtx = {
+    zones: template.zone_layout.zones,
+    widthMm: template.trim_width_mm + template.bleed_mm * 2,
+    heightMm: template.trim_height_mm + template.bleed_mm * 2,
+    fontId: opts?.fontId && FONT_PRESETS.some((f) => f.id === opts.fontId) ? opts.fontId : "sans-modern",
+    primaryColor: opts?.primaryColor && HEX.test(opts.primaryColor) ? opts.primaryColor : "#1f4d38",
+    accentColor: opts?.accentColor && HEX.test(opts.accentColor) ? opts.accentColor : "#2e6b4f",
+    bodyColor: "#1b2430",
+  };
+
+  switch (opts?.variant) {
+    case "photo-focus":
+      return buildPhotoFocusLayout(ctx);
+    case "centered":
+      return buildCenteredLayout(ctx);
+    default:
+      return buildClassicLayout(ctx);
+  }
+}
+
+export const LAYOUT_VARIANTS: { id: LayoutVariant; label: string; description: string }[] = [
+  { id: "classic", label: "Classic", description: "Photo beside your brand name — the standard layout." },
+  { id: "photo-focus", label: "Photo focus", description: "A larger photo across the top, name and tagline below it." },
+  { id: "centered", label: "Centered", description: "Photo and name centered as a calm, symmetrical block." },
+];
 
 function defaultRectFor(type: BoundElementType, fallback: CanvasElement[]): CanvasElement {
   const found = fallback.find((el) => el.type === type);
@@ -283,6 +392,13 @@ export function validateCanvasElements(
           color: safeHex(style.color, "#ffffff"),
           badgeColor: safeHex(style.badgeColor, "#2e6b4f"),
         },
+      });
+    } else if (type === "icon") {
+      validated.push({
+        ...base,
+        type: "icon",
+        iconId: safeIconId(el.iconId),
+        color: safeHex(el.color, "#1b2430"),
       });
     } else if (type === "text") {
       const style = (el.style ?? {}) as Record<string, unknown>;

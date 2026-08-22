@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CanvasElement } from "@/lib/canvasLayout";
 import CanvasEditor from "./CanvasEditor";
+import LayersPanel from "./LayersPanel";
 import { Summary, safeJson } from "./types";
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 
 export default function CanvasEditorModal({ token, summary, onClose, onSaved }: Props) {
   const [elements, setElements] = useState<CanvasElement[]>(summary.elements);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState(summary.logoUrl);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,14 +51,28 @@ export default function CanvasEditorModal({ token, summary, onClose, onSaved }: 
           </button>
         </div>
         {error && <div className="error-box">{error}</div>}
-        <CanvasEditor
-          token={token}
-          summary={summary}
-          elements={elements}
-          onElementsChange={setElements}
-          logoUrl={logoUrl}
-          onLogoUploaded={refreshLogo}
-        />
+        <div className="canvas-workspace-outer">
+          <CanvasEditor
+            token={token}
+            summary={summary}
+            elements={elements}
+            onElementsChange={setElements}
+            logoUrl={logoUrl}
+            onLogoUploaded={refreshLogo}
+            selectedId={selectedId}
+            onSelectedIdChange={setSelectedId}
+          />
+          <LayersPanel
+            elements={elements}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onReorder={setElements}
+            onDelete={(id) => {
+              setElements(elements.filter((e) => e.id !== id));
+              setSelectedId(null);
+            }}
+          />
+        </div>
         <div className="btn-row" style={{ justifyContent: "flex-end" }}>
           <button type="button" className="btn btn-outline" onClick={onClose} disabled={busy}>
             Cancel

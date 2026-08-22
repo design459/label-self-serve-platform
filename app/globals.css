@@ -1106,7 +1106,7 @@ input[type="range"] {
 }
 
 .modal-panel-wide {
-  max-width: 760px;
+  max-width: 960px;
 }
 
 .modal-header {
@@ -1114,6 +1114,48 @@ input[type="range"] {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+}
+
+/* Editor layout: a dark icon rail + the stage column (rendered together by
+   CanvasEditor.tsx as .canvas-workspace), with the LayersPanel as a third
+   sibling column added by CanvasEditorModal.tsx. */
+.canvas-workspace-outer {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.canvas-workspace {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.canvas-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--accent-dark);
+  border-radius: var(--radius);
+  padding: 10px 8px;
+  flex-shrink: 0;
+}
+
+.canvas-rail .icon-btn {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  background: transparent;
+}
+
+.canvas-rail .icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.canvas-stage-col {
+  min-width: 0;
 }
 
 .canvas-toolbar {
@@ -1138,4 +1180,114 @@ input[type="range"] {
 .element-toolbar select,
 .element-toolbar input[type="color"] {
   width: auto;
+}
+
+.toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 0 2px;
+}
+
+/* Icon-only buttons, replacing text-label buttons in the editor toolbar. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.icon-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.icon-btn-sm {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-btn-danger:hover {
+  border-color: var(--danger);
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.icon-btn-choice.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.icon-picker-grid,
+.icon-add-popover .template-grid {
+  grid-template-columns: repeat(6, 32px);
+  gap: 6px;
+}
+
+.icon-add-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(4, 43, 36, 0.2);
+  padding: 10px;
+  z-index: 10;
+}
+
+/* Layers panel — right-hand sibling of the canvas stage. */
+.layers-panel {
+  flex: 0 0 220px;
+  background: var(--paper);
+  border: 0.8px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 14px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.layer-row:hover {
+  background: var(--bg);
+}
+
+.layer-row.selected {
+  background: var(--accent-light);
+}
+
+.layer-row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layer-row-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
 }

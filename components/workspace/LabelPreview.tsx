@@ -4,6 +4,7 @@ import { useState } from "react";
 import { THEME_PRESETS, Theme } from "@/lib/types";
 import { Summary, safeJson } from "./types";
 import CanvasEditorModal from "./CanvasEditorModal";
+import LayoutVariantPicker from "./LayoutVariantPicker";
 
 interface Props {
   token: string;
@@ -17,8 +18,10 @@ export default function LabelPreview({ token, summary, theme, onThemeChange, onG
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [showVariantPicker, setShowVariantPicker] = useState(false);
   const { order } = summary;
   const capReached = order.revisionsUsed >= order.revisionLimit;
+  const hasCustomLayout = summary.canvasLayout !== null;
 
   async function generate() {
     setBusy(true);
@@ -55,6 +58,31 @@ export default function LabelPreview({ token, summary, theme, onThemeChange, onG
           ))}
         </div>
       </div>
+
+      {!hasCustomLayout || showVariantPicker ? (
+        <LayoutVariantPicker
+          token={token}
+          onApplied={() => {
+            setShowVariantPicker(false);
+            onGenerated();
+          }}
+        />
+      ) : (
+        <p className="field-hint">
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ padding: "4px 10px", fontSize: 12 }}
+            onClick={() => {
+              if (window.confirm("This replaces your current design with a fresh starting layout — continue?")) {
+                setShowVariantPicker(true);
+              }
+            }}
+          >
+            Reset to a starting layout…
+          </button>
+        </p>
+      )}
 
       <div className="revision-meter">
         Revisions used: <strong>{order.revisionsUsed} / {order.revisionLimit}</strong>

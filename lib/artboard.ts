@@ -1,5 +1,6 @@
 import { FontPairing, NutritionField, PackFormatTemplate, PanelStyle, ProductCategory, RegulatoryContent, Theme, FONT_PRESETS } from "./types";
 import { CanvasElement, HEX } from "./canvasLayout";
+import { ICON_SVG_MARKUP } from "./iconAssets";
 
 // Compliance boundary, enforced by construction, not just convention:
 //  (a) ALL free-text fields — ingredients, statutory_marks, claims,
@@ -176,6 +177,10 @@ function renderElement(el: CanvasElement, ctx: RenderCtx): string {
     case "text": {
       const pair = safeFontFamily(el.style.fontId, ctx.font);
       return `<div style="${rect} font-family:${pair.body}; font-size:${safeFontSize(el.style.fontSize, 3)}mm; line-height:1.3; color:${safeColor(el.style.color)};">${nl2br(el.content)}</div>`;
+    }
+    case "icon": {
+      const markup = ICON_SVG_MARKUP[el.iconId] ?? ICON_SVG_MARKUP.leaf;
+      return `<div style="${rect} color:${safeColor(el.color)}; display:flex; align-items:center; justify-content:center;"><svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${markup}</svg></div>`;
     }
     default:
       return "";
