@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { currentStaff } from "@/lib/supabaseAuth";
 import { supabaseAdmin, logAudit } from "@/lib/supabaseServer";
-import { PackFormat } from "@/lib/types";
+import { PACK_FORMATS, PRODUCT_CATEGORIES } from "@/lib/types";
 import { apiCatch } from "@/lib/apiError";
-
-const PACK_FORMATS: PackFormat[] = ["pouch", "capsule_bottle", "jar", "sachet"];
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +15,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
 
-    const { customerName, customerEmail, skuCode, productName, packFormat, revisionLimit, regulatory } = body;
+    const { customerName, customerEmail, skuCode, productName, packFormat, category, revisionLimit, regulatory } = body;
 
     if (!customerName || !customerEmail || !skuCode || !packFormat) {
       return NextResponse.json(
@@ -28,6 +26,7 @@ export async function POST(req: NextRequest) {
     if (!PACK_FORMATS.includes(packFormat)) {
       return NextResponse.json({ error: `packFormat must be one of ${PACK_FORMATS.join(", ")}` }, { status: 400 });
     }
+    const resolvedCategory = PRODUCT_CATEGORIES.includes(category) ? category : "capsule_tablet";
 
     const db = supabaseAdmin();
     const accessToken = randomBytes(24).toString("hex");
@@ -40,9 +39,11 @@ export async function POST(req: NextRequest) {
         sku_code: skuCode,
         product_name: productName || "",
         pack_format: packFormat,
+        category: resolvedCategory,
         access_token: accessToken,
         revision_limit: Number(revisionLimit) > 0 ? Number(revisionLimit) : 5,
         created_by: staff.userId,
+        source: "staff",
       })
       .select()
       .single();

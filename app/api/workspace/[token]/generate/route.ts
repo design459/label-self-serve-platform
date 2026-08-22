@@ -4,7 +4,7 @@ import { supabaseAdmin, storageBucket, signedUrlFor, logAudit } from "@/lib/supa
 import { buildArtboardHtml, ArtboardInput } from "@/lib/artboard";
 import { generateQrDataUrl } from "@/lib/labelCodes";
 import { launchBrowser } from "@/lib/launchBrowser";
-import { PackFormatTemplate, RegulatoryContent, Theme } from "@/lib/types";
+import { CategoryPanelTemplate, FONT_PRESETS, PackFormatTemplate, RegulatoryContent, Theme } from "@/lib/types";
 import { apiCatch } from "@/lib/apiError";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -39,11 +39,15 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       return NextResponse.json({ error: spendError.message }, { status });
     }
 
-    const [{ data: template }, { data: regulatory }, { data: logo }] = await Promise.all([
+    const [{ data: template }, { data: regulatory }, { data: logo }, { data: panelTemplate }] = await Promise.all([
       db.from("pack_format_templates").select("*").eq("id", order.selected_template_id).single(),
       db.from("label_regulatory_content").select("*").eq("label_order_id", order.id).maybeSingle(),
       db.from("label_assets").select("*").eq("label_order_id", order.id).eq("kind", "logo").maybeSingle(),
+      db.from("category_panel_templates").select("*").eq("category", order.category).maybeSingle(),
     ]);
+
+    const panel = panelTemplate as CategoryPanelTemplate | null;
+    const font = FONT_PRESETS.find((f) => f.id === order.font_id) || FONT_PRESETS[0];
 
     let logoDataUrl: string | null = null;
     if (logo?.storage_path) {
@@ -79,10 +83,17 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
 
     const renderInput: Omit<ArtboardInput, "watermark"> = {
       productName: order.product_name || order.sku_code,
+      displayName: order.display_name,
+      marketingTagline: order.marketing_tagline,
       skuCode: order.sku_code,
       customerName: order.customer_name,
+      category: order.category,
+      panelStyle: panel?.panel_style ?? "blank",
+      fieldSchema: panel?.field_schema ?? [],
       template: template as PackFormatTemplate,
       theme,
+      font,
+      imagePosition: order.image_position,
       logoDataUrl,
       regulatory: reg,
       qrDataUrl,

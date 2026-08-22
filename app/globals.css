@@ -989,3 +989,95 @@ table.review-table th {
     min-height: 60vh;
   }
 }
+
+/* Public landing page — corner nav floating over the hero photo, and the
+   below-the-fold product/category picker section (reuses .template-grid /
+   .template-card, same visual language as the staff order form). */
+.corner-nav {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 2;
+  font-size: 13px;
+}
+
+.landing-section {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 64px 20px;
+}
+
+.landing-section + .landing-section {
+  padding-top: 0;
+}
+
+.landing-section-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--accent-dark);
+  font-size: 22px;
+  margin: 0 0 6px;
+}
+
+.template-card-category {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* Guided customizer — photo pan/zoom sliders and font-pairing picker. */
+.range-field {
+  margin-bottom: 12px;
+}
+
+.range-field label {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.font-chip {
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: var(--paper);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.font-chip:hover {
+  border-color: var(--accent);
+}
+
+.font-chip.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.photo-preview-frame {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #f1efe8;
+  margin-bottom: 12px;
+}
+
+.photo-preview-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

@@ -1,6 +1,64 @@
 export type PackFormat = "pouch" | "capsule_bottle" | "jar" | "sachet";
 
+export const PACK_FORMATS: PackFormat[] = ["pouch", "capsule_bottle", "jar", "sachet"];
+
 export type LabelOrderStatus = "draft" | "in_progress" | "submitted" | "approved" | "rejected";
+
+// Product type — orthogonal to PackFormat (physical packaging). Drives
+// which nutrition/supplement panel field set applies. See
+// supabase/migrations/0003_customer_self_serve.sql.
+export type ProductCategory = "capsule_tablet" | "powder" | "juice_beverage" | "bar" | "other";
+
+export const PRODUCT_CATEGORIES: ProductCategory[] = [
+  "capsule_tablet",
+  "powder",
+  "juice_beverage",
+  "bar",
+  "other",
+];
+
+export const CATEGORY_LABELS: Record<ProductCategory, string> = {
+  capsule_tablet: "Capsule / Tablet",
+  powder: "Powder",
+  juice_beverage: "Juice / Beverage",
+  bar: "Bar",
+  other: "Other",
+};
+
+export type PanelStyle = "supplement_facts" | "nutrition_facts" | "blank";
+
+export interface NutritionField {
+  key: string;
+  label: string;
+  type: "text" | "textarea";
+}
+
+export interface CategoryPanelTemplate {
+  id: string;
+  category: ProductCategory;
+  display_label: string;
+  panel_style: PanelStyle;
+  default_pack_format: PackFormat;
+  field_schema: NutritionField[];
+}
+
+export interface FontPairing {
+  id: string;
+  label: string;
+  heading: string;
+  body: string;
+}
+
+// Generic CSS keyword stacks only — no named webfont families. The
+// print-proof renderer runs headless Chromium under @sparticuz/chromium in
+// a Netlify Function with a minimal bundled font set and no network
+// access, so a named font like "Georgia" isn't guaranteed to exist there
+// the way it does on a desktop browser. Generic keywords always resolve.
+export const FONT_PRESETS: FontPairing[] = [
+  { id: "sans-modern", label: "Modern sans", heading: "system-ui, sans-serif", body: "system-ui, sans-serif" },
+  { id: "serif-classic", label: "Classic serif", heading: "serif", body: "sans-serif" },
+  { id: "mono-technical", label: "Technical mono", heading: "monospace", body: "sans-serif" },
+];
 
 export interface Zone {
   x: number;
@@ -67,6 +125,12 @@ export interface RegulatoryContent {
   statutory_marks: string;
 }
 
+export interface ImagePosition {
+  x: number;
+  y: number;
+  scale: number;
+}
+
 export interface LabelOrder {
   id: string;
   customer_name: string;
@@ -74,6 +138,12 @@ export interface LabelOrder {
   sku_code: string;
   product_name: string;
   pack_format: PackFormat;
+  category: ProductCategory;
+  display_name: string | null;
+  marketing_tagline: string | null;
+  font_id: string;
+  image_position: ImagePosition;
+  source: "staff" | "customer";
   access_token: string;
   status: LabelOrderStatus;
   revision_limit: number;
@@ -106,6 +176,7 @@ export interface CatalogProduct {
   id: string;
   name: string;
   pack_format: PackFormat;
+  category: ProductCategory;
   ingredients: string;
   claims: string;
   statutory_marks: string;

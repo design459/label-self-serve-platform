@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CatalogProduct, PACK_FORMAT_LABELS, PackFormat } from "@/lib/types";
+import { CATEGORY_LABELS, CatalogProduct, PACK_FORMAT_LABELS, PackFormat, ProductCategory } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 import { useRouter } from "next/navigation";
 
@@ -20,6 +20,7 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
   const [skuCode, setSkuCode] = useState("");
   const [productName, setProductName] = useState("");
   const [packFormat, setPackFormat] = useState<PackFormat>("pouch");
+  const [category, setCategory] = useState<ProductCategory>("capsule_tablet");
   const [revisionLimit, setRevisionLimit] = useState(5);
   const [ingredients, setIngredients] = useState("");
   const [claims, setClaims] = useState("");
@@ -59,6 +60,7 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
     if (!p) return;
     setProductName(p.name);
     setPackFormat(p.pack_format);
+    setCategory(p.category);
     setIngredients(p.ingredients);
     setClaims(p.claims);
     setStatutoryMarks(p.statutory_marks);
@@ -101,6 +103,7 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
         skuCode,
         productName,
         packFormat,
+        category,
         revisionLimit,
         regulatory: {
           ingredients,
@@ -266,6 +269,19 @@ export default function NewOrderForm({ origin, staffEmail }: { origin: string; s
                     ))}
                   </select>
                 </div>
+                <div className="field">
+                  <label>Product category</label>
+                  <select value={category} onChange={(e) => setCategory(e.target.value as ProductCategory)}>
+                    {Object.entries(CATEGORY_LABELS).map(([value, labelText]) => (
+                      <option key={value} value={value}>
+                        {labelText}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="field-hint">Determines the nutrition/supplement panel shown on the label.</p>
+                </div>
+              </div>
+              <div className="wizard-grid-2">
                 <div className="field">
                   <label>Revision cap</label>
                   <input

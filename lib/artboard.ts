@@ -1,11 +1,33 @@
-import { PackFormatTemplate, RegulatoryContent, Theme } from "./types";
+import { FontPairing, ImagePosition, NutritionField, PackFormatTemplate, PanelStyle, ProductCategory, RegulatoryContent, Theme } from "./types";
 
+// Compliance boundary, enforced by construction, not just convention:
+//  (a) ALL free-text fields — ingredients, statutory_marks, claims,
+//      displayName, marketingTagline, batch/mfd/exp, sku — are passed
+//      through esc()/nl2br() below before ever reaching the HTML string.
+//  (b) ALL style-affecting fields — theme hex colors, font — are
+//      format/allowlist-validated by the caller (see
+//      app/api/workspace/[token]/generate/route.ts's validTheme() and
+//      the FONT_PRESETS allowlist) before they ever reach this function;
+//      this function never accepts a raw client string for anything that
+//      gets interpolated into <style>.
+//  (c) Zone rects/trim/bleed/safety are resolved only from the
+//      server-trusted `template` (a pack_format_templates row) — there is
+//      no client input path to zone x/y/w/h. The only customer-controlled
+//      geometry is `imagePosition` (pan/zoom *within* the still-fixed
+//      header zone), clamped both at the write endpoint and again here.
 export interface ArtboardInput {
   productName: string;
+  displayName?: string | null;
+  marketingTagline?: string | null;
   skuCode: string;
   customerName: string;
+  category: ProductCategory;
+  panelStyle: PanelStyle;
+  fieldSchema: NutritionField[];
   template: PackFormatTemplate;
   theme: Theme;
+  font: FontPairing;
+  imagePosition?: ImagePosition | null;
   logoDataUrl?: string | null;
   regulatory: RegulatoryContent;
   qrDataUrl?: string | null;
@@ -21,20 +43,29 @@ function nl2br(value: string | undefined | null): string {
   return esc(value).replace(/\n/g, "<br/>");
 }
 
+function clampPct(v: number | undefined, fallback: number): number {
+  if (typeof v !== "number" || Number.isNaN(v)) return fallback;
+  return Math.min(100, Math.max(0, v));
+}
+
+function clampScale(v: number | undefined): number {
+  if (typeof v !== "number" || Number.isNaN(v)) return 1;
+  return Math.min(2, Math.max(1, v));
+}
+
+const PANEL_HEADING: Record<PanelStyle, string> = {
+  supplement_facts: "Supplement Facts",
+  nutrition_facts: "Nutrition Facts",
+  blank: "",
+};
+
 function nutritionRows(input: ArtboardInput): string {
   const n = input.regulatory.nutrition_panel || {};
-  const rows: Array<[string, string | undefined]> = [
-    ["Serving size", n.servingSize],
-    ["Servings per container", n.servingsPerContainer],
-    ["Calories", n.calories],
-    ["Total fat", n.totalFat],
-    ["Sodium", n.sodium],
-    ["Total carbohydrate", n.totalCarb],
-    ["Protein", n.protein],
-  ];
-  return rows
+  const schema = input.fieldSchema && input.fieldSchema.length > 0 ? input.fieldSchema : [];
+  return schema
+    .map((f) => [f.label, n[f.key]] as [string, string | undefined])
     .filter(([, v]) => v)
-    .map(([label, v]) => `<tr><td>${esc(label)}</td><td>${esc(v)}</td></tr>`)
+    .map(([label, v]) => `<tr><td>${esc(label)}</td><td>${v && v.includes("\n") ? nl2br(v) : esc(v)}</td></tr>`)
     .join("");
 }
 
@@ -44,7 +75,7 @@ function nutritionRows(input: ArtboardInput): string {
 // puppeteer-core — one render target, not two hand-synced copies, so the
 // preview the customer sees can't drift from what gets submitted/approved.
 export function buildArtboardHtml(input: ArtboardInput): string {
-  const { template, theme, regulatory } = input;
+  const { template, theme, regulatory, font } = input;
   const { zones } = template.zone_layout;
   const widthMm = template.trim_width_mm + template.bleed_mm * 2;
   const heightMm = template.trim_height_mm + template.bleed_mm * 2;
@@ -55,6 +86,18 @@ export function buildArtboardHtml(input: ArtboardInput): string {
 
   const zoneRect = (z: { x: number; y: number; w: number; h: number }) =>
     `position:absolute; left:${z.x}%; top:${z.y}%; width:${z.w}%; height:${z.h}%;`;
+
+  // The one degree of geometric freedom the customer has: pan/zoom of the
+  // uploaded photo *within* the still-fixed header rect. Clamped again here
+  // even though the write endpoint already clamps it — never trust a value
+  // crossing a network boundary exactly once.
+  const posX = clampPct(input.imagePosition?.x, 50);
+  const posY = clampPct(input.imagePosition?.y, 50);
+  const scale = clampScale(input.imagePosition?.scale);
+
+  const headingText = esc(input.displayName || input.productName || "Product Name");
+  const panelHeading = PANEL_HEADING[input.panelStyle];
+  const rows = nutritionRows(input);
 
   return `<!doctype html>
 <html>
@@ -68,7 +111,7 @@ export function buildArtboardHtml(input: ArtboardInput): string {
     width: ${widthMm}mm;
     height: ${heightMm}mm;
     background: ${theme.backgroundColor};
-    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    font-family: ${font.body};
     color: #1b2430;
     overflow: hidden;
   }
@@ -90,13 +133,16 @@ export function buildArtboardHtml(input: ArtboardInput): string {
   .zone-left { ${zoneRect(zones.left)} font-size: 2.6mm; line-height: 1.35; overflow:hidden; }
   .zone-right { ${zoneRect(zones.right)} font-size: 2.6mm; line-height: 1.35; overflow:hidden; }
   .zone-footer { ${zoneRect(zones.footer)} display:flex; align-items:center; justify-content:space-between; font-size: 2.2mm; border-top: 0.2mm solid ${theme.accentColor}; padding-top: 1mm; }
-  .logo { max-height: 100%; max-width: 22mm; object-fit: contain; }
-  .product-name { font-size: 5mm; font-weight: 700; color: ${theme.primaryColor}; margin: 0; }
+  .photo-box { height: 100%; aspect-ratio: 1 / 1; border-radius: 2mm; overflow: hidden; flex-shrink: 0; background: #f1efe8; }
+  .photo-box img { width: 100%; height: 100%; object-fit: cover; object-position: ${posX}% ${posY}%; transform: scale(${scale}); }
+  .header-text { min-width: 0; }
+  .product-name { font-family: ${font.heading}; font-size: 5mm; font-weight: 700; color: ${theme.primaryColor}; margin: 0; }
+  .tagline { font-size: 2.4mm; color: #5b6472; margin: 0.6mm 0 0; }
   .claim-badge {
     font-size: 2mm; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em;
     padding: 0.8mm 2mm; border-radius: 3mm; background: ${theme.accentColor}; color: #fff;
   }
-  .section-title { font-weight: 700; color: ${theme.primaryColor}; margin: 0 0 1mm; font-size: 2.6mm; }
+  .section-title { font-family: ${font.heading}; font-weight: 700; color: ${theme.primaryColor}; margin: 0 0 1mm; font-size: 2.6mm; }
   .section { margin-bottom: 2mm; }
   table.nutrition { width: 100%; border-collapse: collapse; }
   table.nutrition td { border-bottom: 0.2mm solid #e2e5ea; padding: 0.6mm 0; }
@@ -119,8 +165,11 @@ export function buildArtboardHtml(input: ArtboardInput): string {
     <div class="guide-safety"></div>
 
     <div class="zone zone-header">
-      ${input.logoDataUrl ? `<img class="logo" src="${input.logoDataUrl}" alt="logo" />` : ""}
-      <p class="product-name">${esc(input.productName || "Product Name")}</p>
+      ${input.logoDataUrl ? `<div class="photo-box"><img src="${input.logoDataUrl}" alt="" /></div>` : ""}
+      <div class="header-text">
+        <p class="product-name">${headingText}</p>
+        ${input.marketingTagline ? `<p class="tagline">${esc(input.marketingTagline)}</p>` : ""}
+      </div>
     </div>
 
     <div class="zone zone-claims">
@@ -144,10 +193,12 @@ export function buildArtboardHtml(input: ArtboardInput): string {
     </div>
 
     <div class="zone zone-right">
-      <div class="section">
-        <p class="section-title">Nutrition facts</p>
-        <table class="nutrition">${nutritionRows(input) || "<tr><td>—</td></tr>"}</table>
-      </div>
+      ${panelHeading
+        ? `<div class="section">
+        <p class="section-title">${esc(panelHeading)}</p>
+        <table class="nutrition">${rows || "<tr><td>—</td></tr>"}</table>
+      </div>`
+        : ""}
     </div>
 
     <div class="zone zone-footer">

@@ -19,7 +19,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
 
   const db = supabaseAdmin();
 
-  const [{ data: templates }, { data: latestDesign }, { data: latestReview }, { data: logo }, { data: regulatory }] =
+  const [{ data: templates }, { data: latestDesign }, { data: latestReview }, { data: logo }, { data: regulatory }, { data: panel }] =
     await Promise.all([
       db.from("pack_format_templates").select("*").eq("pack_format", order.pack_format).eq("is_active", true),
       db
@@ -38,6 +38,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
         .maybeSingle(),
       db.from("label_assets").select("*").eq("label_order_id", order.id).eq("kind", "logo").maybeSingle(),
       db.from("label_regulatory_content").select("*").eq("label_order_id", order.id).maybeSingle(),
+      db.from("category_panel_templates").select("*").eq("category", order.category).maybeSingle(),
     ]);
 
   const proofUrl = latestDesign?.proof_storage_path ? await signedUrlFor(latestDesign.proof_storage_path) : null;
@@ -53,6 +54,11 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
       skuCode: order.sku_code,
       productName: order.product_name,
       packFormat: order.pack_format,
+      category: order.category,
+      displayName: order.display_name,
+      marketingTagline: order.marketing_tagline,
+      fontId: order.font_id,
+      imagePosition: order.image_position,
       status: order.status,
       revisionLimit: order.revision_limit,
       revisionsUsed: order.revisions_used,
@@ -62,6 +68,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     templates: templates ?? [],
     hasLogo: Boolean(logo),
     regulatory: regulatory ?? null,
+    panel: panel ?? null,
     latestDesign: latestDesign
       ? { id: latestDesign.id, revisionNumber: latestDesign.revision_number, isSubmitted: latestDesign.is_submitted }
       : null,
