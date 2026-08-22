@@ -1235,6 +1235,31 @@ input[type="range"] {
   margin: 0 2px;
 }
 
+/* Persistent zoom control, bottom-right of the viewport, matching a
+   typical design tool's zoom widget. */
+.zoom-control {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow-card);
+  padding: 6px 10px;
+  z-index: 30;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.zoom-control span {
+  min-width: 38px;
+  text-align: center;
+}
+
 /* Icon-only buttons, replacing text-label buttons in the editor toolbar. */
 .icon-btn {
   display: inline-flex;

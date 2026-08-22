@@ -12,6 +12,8 @@ import {
   LayoutTemplate,
   ImagePlus,
   ImageUp,
+  Minus,
+  Plus,
   AlignHorizontalJustifyStart,
   AlignHorizontalJustifyCenter,
   AlignHorizontalJustifyEnd,
@@ -59,6 +61,7 @@ export default function CanvasEditor({
   const template = summary.templates.find((t) => t.id === order.selectedTemplateId) ?? summary.templates[0];
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"text" | "icons" | "templates" | "photo" | null>(null);
+  const [zoom, setZoom] = useState(1);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { widthMm, heightMm, scale, stageW, stageH } = useMemo(() => {
@@ -69,7 +72,19 @@ export default function CanvasEditor({
     return { widthMm: wMm, heightMm: hMm, scale: s, stageW: wMm * s, stageH: hMm * s };
   }, [template]);
 
+  // stageW/stageH above are the 100%-zoom baseline (fit to STAGE_MAX_WIDTH);
+  // everything that actually renders/measures the stage uses these zoomed
+  // dimensions instead, so zooming just scales the whole layout uniformly —
+  // element x/y/w/h stay percentages either way.
+  const dispW = stageW * zoom;
+  const dispH = stageH * zoom;
+  const dispScale = scale * zoom;
+
   if (!template) return <p className="field-hint">Pick your label size first.</p>;
+
+  function zoomBy(delta: number) {
+    setZoom((z) => Math.round(Math.min(2, Math.max(0.4, z + delta)) * 100) / 100);
+  }
 
   function updateElement(id: string, patch: Partial<CanvasElement>) {
     onElementsChange(elements.map((el) => (el.id === id ? ({ ...el, ...patch } as CanvasElement) : el)));
@@ -159,15 +174,15 @@ export default function CanvasEditor({
   // top edge of the stage).
   const selRect = selected
     ? {
-        x: (selected.x / 100) * stageW,
-        y: (selected.y / 100) * stageH,
-        w: (selected.w / 100) * stageW,
-        h: (selected.h / 100) * stageH,
+        x: (selected.x / 100) * dispW,
+        y: (selected.y / 100) * dispH,
+        w: (selected.w / 100) * dispW,
+        h: (selected.h / 100) * dispH,
       }
     : null;
   const TOOLBAR_H = 40;
   const toolbarTop = selRect ? (selRect.y - TOOLBAR_H - 8 < 0 ? selRect.y + selRect.h + 8 : selRect.y - TOOLBAR_H - 8) : 0;
-  const toolbarLeft = selRect ? Math.max(0, Math.min(selRect.x, stageW - 260)) : 0;
+  const toolbarLeft = selRect ? Math.max(0, Math.min(selRect.x, dispW - 260)) : 0;
 
   function toggleTab(tab: "text" | "icons" | "templates" | "photo") {
     setActiveTab((cur) => (cur === tab ? null : tab));
@@ -230,14 +245,14 @@ export default function CanvasEditor({
       <div className="canvas-stage-col">
         <div
           className="canvas-stage"
-          style={{ width: stageW, height: stageH }}
+          style={{ width: dispW, height: dispH }}
           onClick={(e) => {
             if (e.target === e.currentTarget) onSelectedIdChange(null);
           }}
         >
           {elements.map((el, i) => {
-            const px = { x: (el.x / 100) * stageW, y: (el.y / 100) * stageH };
-            const size = { width: (el.w / 100) * stageW, height: (el.h / 100) * stageH };
+            const px = { x: (el.x / 100) * dispW, y: (el.y / 100) * dispH };
+            const size = { width: (el.w / 100) * dispW, height: (el.h / 100) * dispH };
             return (
               <Rnd
                 key={el.id}
@@ -246,19 +261,19 @@ export default function CanvasEditor({
                 position={px}
                 style={{ zIndex: i, outline: selectedId === el.id ? "2px solid var(--accent)" : "1px dashed rgba(0,0,0,0.15)" }}
                 onDragStop={(_e, d) => {
-                  updateElement(el.id, { x: (d.x / stageW) * 100, y: (d.y / stageH) * 100 } as Partial<CanvasElement>);
+                  updateElement(el.id, { x: (d.x / dispW) * 100, y: (d.y / dispH) * 100 } as Partial<CanvasElement>);
                 }}
                 onResizeStop={(_e, _dir, ref, _delta, pos) => {
                   updateElement(el.id, {
-                    w: (ref.offsetWidth / stageW) * 100,
-                    h: (ref.offsetHeight / stageH) * 100,
-                    x: (pos.x / stageW) * 100,
-                    y: (pos.y / stageH) * 100,
+                    w: (ref.offsetWidth / dispW) * 100,
+                    h: (ref.offsetHeight / dispH) * 100,
+                    x: (pos.x / dispW) * 100,
+                    y: (pos.y / dispH) * 100,
                   } as Partial<CanvasElement>);
                 }}
                 onMouseDown={() => onSelectedIdChange(el.id)}
               >
-                <ElementPreview el={el} scale={scale} summary={summary} logoUrl={logoUrl} />
+                <ElementPreview el={el} scale={dispScale} summary={summary} logoUrl={logoUrl} />
               </Rnd>
             );
           })}
@@ -360,6 +375,16 @@ export default function CanvasEditor({
               )}
             </div>
           )}
+        </div>
+
+        <div className="zoom-control">
+          <button type="button" className="icon-btn" title="Zoom out" onClick={() => zoomBy(-0.1)} disabled={zoom <= 0.4}>
+            <Minus size={14} />
+          </button>
+          <span>{Math.round(zoom * 100)}%</span>
+          <button type="button" className="icon-btn" title="Zoom in" onClick={() => zoomBy(0.1)} disabled={zoom >= 2}>
+            <Plus size={14} />
+          </button>
         </div>
 
         <input
