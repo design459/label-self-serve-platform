@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, CSSProperties } from "react";
 import { Rnd, HandleStyles } from "react-rnd";
 import {
   BringToFront,
@@ -40,7 +40,13 @@ import LayoutVariantPicker from "./LayoutVariantPicker";
 import BackgroundPanel from "./BackgroundPanel";
 import { ElementPreview } from "./LabelStagePreview";
 
+// Fallback before the ResizeObserver below reports the real available
+// width, and the floor/ceiling that width gets clamped between — the
+// editor should fill the space between the side panels on a normal
+// monitor without the label becoming absurdly huge on an ultrawide one.
 const STAGE_MAX_WIDTH = 640;
+const STAGE_MIN_WIDTH = 420;
+const STAGE_MAX_WIDTH_CAP = 1100;
 
 // Circular corner handles, shown only on the selected element — everything
 // else about resizing (hit area, cursor) is re-resizable's default; this
@@ -109,14 +115,32 @@ export default function CanvasEditor({
   const [layersMenuOpen, setLayersMenuOpen] = useState(false);
   const [effectsMenuOpen, setEffectsMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const stageColRef = useRef<HTMLDivElement | null>(null);
+  const [availableWidth, setAvailableWidth] = useState(STAGE_MAX_WIDTH);
+
+  // The label used to be capped at a fixed 640px regardless of how much
+  // room the editor actually had, leaving a lot of the workspace empty on
+  // anything wider than a small laptop — this tracks the real available
+  // width so the canvas fills that space instead (clamped so it neither
+  // shrinks below a usable size nor balloons on an ultrawide monitor).
+  useEffect(() => {
+    const el = stageColRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setAvailableWidth(Math.min(STAGE_MAX_WIDTH_CAP, Math.max(STAGE_MIN_WIDTH, width)));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const { widthMm, heightMm, scale, stageW, stageH } = useMemo(() => {
-    if (!template) return { widthMm: 100, heightMm: 100, scale: 1, stageW: STAGE_MAX_WIDTH, stageH: STAGE_MAX_WIDTH };
+    if (!template) return { widthMm: 100, heightMm: 100, scale: 1, stageW: availableWidth, stageH: availableWidth };
     const wMm = template.trim_width_mm + template.bleed_mm * 2;
     const hMm = template.trim_height_mm + template.bleed_mm * 2;
-    const s = STAGE_MAX_WIDTH / wMm;
+    const s = availableWidth / wMm;
     return { widthMm: wMm, heightMm: hMm, scale: s, stageW: wMm * s, stageH: hMm * s };
-  }, [template]);
+  }, [template, availableWidth]);
 
   // stageW/stageH above are the 100%-zoom baseline (fit to STAGE_MAX_WIDTH);
   // everything that actually renders/measures the stage uses these zoomed
@@ -309,7 +333,7 @@ export default function CanvasEditor({
         </div>
       )}
 
-      <div className="canvas-stage-col">
+      <div className="canvas-stage-col" ref={stageColRef}>
         {selected && (
           <div className="canvas-toolbar" style={{ width: dispW }}>
             {selected.type === "photo" ? (
