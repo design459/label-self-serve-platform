@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { safeCurrentStaff } from "@/lib/supabaseAuth";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import AppSidebar from "@/components/admin/AppSidebar";
-import SignOutButton from "@/components/admin/SignOutButton";
+import AdminNav from "@/components/admin/AdminNav";
 import ConfigNotice from "@/components/admin/ConfigNotice";
 import { LabelOrder } from "@/lib/types";
 
@@ -32,18 +31,9 @@ export default async function ReviewQueuePage() {
   const inProgressCount = list.filter((o) => o.status === "in_progress").length;
 
   return (
-    <div className="wizard-layout">
-      <AppSidebar activeIndex={4} footer="Dashboard active" />
-
-      <main className="wizard-main">
-        <nav className="appshell-topnav">
-          <a className="btn btn-outline" href="/admin/orders/new" style={{ padding: "6px 12px" }}>
-            New workspace
-          </a>
-          <span className="success-topnav-email">{staff.email}</span>
-          <SignOutButton />
-        </nav>
-
+    <div>
+      <AdminNav email={staff.email} />
+      <div className="page">
         <div className="wizard-page-header">
           <h1>Review queue</h1>
           <p className="subtitle">Labels waiting for compliance sign-off appear here first.</p>
@@ -154,7 +144,7 @@ export default async function ReviewQueuePage() {
             </table>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

@@ -17,9 +17,6 @@ export default function AdminNav({ email }: { email: string | null }) {
     <div className="topbar">
       <div className="topbar-title">Label platform — staff</div>
       <nav style={{ display: "flex", gap: 16, alignItems: "center", fontSize: 14 }}>
-        <Link className="btn btn-outline" href="/admin/orders/new" style={{ padding: "6px 12px" }}>
-          New workspace
-        </Link>
         <Link className="btn btn-outline" href="/admin/review" style={{ padding: "6px 12px" }}>
           Review queue
         </Link>
