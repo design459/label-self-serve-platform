@@ -6,6 +6,8 @@ import { CanvasElement } from "@/lib/canvasLayout";
 import { Summary } from "./types";
 import { ICON_COMPONENTS } from "./iconRegistry";
 
+const HEX = /^#[0-9a-fA-F]{6}$/;
+
 interface Props {
   summary: Summary;
   elements: CanvasElement[];
@@ -34,8 +36,13 @@ export default function LabelStagePreview({ summary, elements, logoUrl, maxWidth
 
   if (!template) return null;
 
+  const backgroundColor = summary.order.theme?.backgroundColor;
+
   return (
-    <div className="canvas-stage" style={{ width: stageW, height: stageH, margin: 0 }}>
+    <div
+      className="canvas-stage"
+      style={{ width: stageW, height: stageH, margin: 0, background: backgroundColor && HEX.test(backgroundColor) ? backgroundColor : "#fff" }}
+    >
       {elements.map((el, i) => (
         <div
           key={el.id}

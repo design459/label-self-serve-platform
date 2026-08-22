@@ -14,6 +14,7 @@ import {
   ImageUp,
   Minus,
   Plus,
+  PaintBucket,
   AlignHorizontalJustifyStart,
   AlignHorizontalJustifyCenter,
   AlignHorizontalJustifyEnd,
@@ -21,7 +22,7 @@ import {
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
 } from "lucide-react";
-import { FONT_PRESETS } from "@/lib/types";
+import { FONT_PRESETS, THEME_PRESETS } from "@/lib/types";
 import { CanvasElement, IconId, isDeletable } from "@/lib/canvasLayout";
 import { Summary } from "./types";
 import IconPicker from "./IconPicker";
@@ -29,6 +30,7 @@ import LayoutVariantPicker from "./LayoutVariantPicker";
 import { ElementPreview } from "./LabelStagePreview";
 
 const STAGE_MAX_WIDTH = 640;
+const HEX = /^#[0-9a-fA-F]{6}$/;
 
 interface Props {
   token: string;
@@ -39,6 +41,8 @@ interface Props {
   onLogoUploaded: () => void;
   selectedId: string | null;
   onSelectedIdChange: (id: string | null) => void;
+  backgroundColor: string;
+  onBackgroundColorChange: (color: string) => void;
 }
 
 function randomId(): string {
@@ -56,11 +60,13 @@ export default function CanvasEditor({
   onLogoUploaded,
   selectedId,
   onSelectedIdChange,
+  backgroundColor,
+  onBackgroundColorChange,
 }: Props) {
   const { order, regulatory, panel } = summary;
   const template = summary.templates.find((t) => t.id === order.selectedTemplateId) ?? summary.templates[0];
   const [uploading, setUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"text" | "icons" | "templates" | "photo" | null>(null);
+  const [activeTab, setActiveTab] = useState<"text" | "icons" | "templates" | "photo" | "background" | null>(null);
   const [zoom, setZoom] = useState(1);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -184,7 +190,7 @@ export default function CanvasEditor({
   const toolbarTop = selRect ? (selRect.y - TOOLBAR_H - 8 < 0 ? selRect.y + selRect.h + 8 : selRect.y - TOOLBAR_H - 8) : 0;
   const toolbarLeft = selRect ? Math.max(0, Math.min(selRect.x, dispW - 260)) : 0;
 
-  function toggleTab(tab: "text" | "icons" | "templates" | "photo") {
+  function toggleTab(tab: "text" | "icons" | "templates" | "photo" | "background") {
     setActiveTab((cur) => (cur === tab ? null : tab));
   }
 
@@ -206,6 +212,10 @@ export default function CanvasEditor({
         <button type="button" className={`editor-rail-tab ${activeTab === "photo" ? "active" : ""}`} onClick={() => toggleTab("photo")}>
           <ImagePlus size={20} />
           <span>Logo</span>
+        </button>
+        <button type="button" className={`editor-rail-tab ${activeTab === "background" ? "active" : ""}`} onClick={() => toggleTab("background")}>
+          <PaintBucket size={20} />
+          <span>Background</span>
         </button>
       </div>
 
@@ -239,13 +249,41 @@ export default function CanvasEditor({
               </button>
             </>
           )}
+          {activeTab === "background" && (
+            <>
+              <p className="wizard-section-label">Edit background</p>
+              <div className="field">
+                <label>Hex color</label>
+                <input
+                  type="text"
+                  value={backgroundColor}
+                  onChange={(e) => {
+                    const v = e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`;
+                    onBackgroundColorChange(v); // allow typing mid-hex; invalid values just won't preview correctly until complete
+                  }}
+                  maxLength={7}
+                />
+              </div>
+              <div className="palette-row">
+                {THEME_PRESETS.map((preset, i) => (
+                  <div
+                    key={i}
+                    className={`swatch ${backgroundColor === preset.backgroundColor ? "selected" : ""}`}
+                    style={{ background: preset.backgroundColor, boxShadow: "inset 0 0 0 1px var(--line)" }}
+                    onClick={() => onBackgroundColorChange(preset.backgroundColor)}
+                    title={preset.backgroundColor}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
       <div className="canvas-stage-col">
         <div
           className="canvas-stage"
-          style={{ width: dispW, height: dispH }}
+          style={{ width: dispW, height: dispH, background: HEX.test(backgroundColor) ? backgroundColor : "#fff" }}
           onClick={(e) => {
             if (e.target === e.currentTarget) onSelectedIdChange(null);
           }}

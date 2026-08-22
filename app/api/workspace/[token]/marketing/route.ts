@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderByToken } from "@/lib/workspaceAuth";
 import { supabaseAdmin, logAudit } from "@/lib/supabaseServer";
-import { FONT_PRESETS } from "@/lib/types";
+import { FONT_PRESETS, THEME_PRESETS } from "@/lib/types";
+import { HEX } from "@/lib/canvasLayout";
 import { apiCatch } from "@/lib/apiError";
 
 // Writes the customer's free-text brand name/tagline and their default font
@@ -25,6 +26,14 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
 
     const fontId = FONT_PRESETS.some((f) => f.id === body.fontId) ? body.fontId : order.font_id;
 
+    // backgroundColor is the only theme field the editor's "Edit background"
+    // panel exposes — primaryColor/accentColor are preserved from whatever
+    // the order already had (or a sane default), never accepted as free
+    // text here, same allowlist/format-validation reasoning as fontId.
+    const currentTheme = order.theme ?? THEME_PRESETS[0];
+    const backgroundColor = typeof body.backgroundColor === "string" && HEX.test(body.backgroundColor) ? body.backgroundColor : currentTheme.backgroundColor;
+    const theme = { ...currentTheme, backgroundColor };
+
     const db = supabaseAdmin();
     const { error: updateError } = await db
       .from("label_orders")
@@ -32,6 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
         display_name: typeof body.displayName === "string" ? body.displayName : order.display_name,
         marketing_tagline: typeof body.marketingTagline === "string" ? body.marketingTagline : order.marketing_tagline,
         font_id: fontId,
+        theme,
         updated_at: new Date().toISOString(),
       })
       .eq("id", order.id);

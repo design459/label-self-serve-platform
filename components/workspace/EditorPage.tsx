@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { CanvasElement } from "@/lib/canvasLayout";
+import { THEME_PRESETS } from "@/lib/types";
 import { Summary, safeJson } from "./types";
 import CanvasEditor from "./CanvasEditor";
 import LayersPanel from "./LayersPanel";
@@ -18,6 +19,7 @@ export default function EditorPage({ token }: { token: string }) {
   const [elements, setElements] = useState<CanvasElement[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [backgroundColor, setBackgroundColor] = useState(THEME_PRESETS[0].backgroundColor);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +35,7 @@ export default function EditorPage({ token }: { token: string }) {
       setSummary(data);
       setLogoUrl(data.logoUrl);
       setElements((prev) => (prev.length === 0 ? data.elements : prev));
+      if (data.order.theme?.backgroundColor) setBackgroundColor(data.order.theme.backgroundColor);
     } catch {
       setLoadError("Couldn't reach the server. Please try again shortly.");
     }
@@ -52,14 +55,23 @@ export default function EditorPage({ token }: { token: string }) {
   async function save() {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/workspace/${token}/layout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ elements }),
-    });
-    const data = await safeJson(res);
+    const [layoutRes, bgRes] = await Promise.all([
+      fetch(`/api/workspace/${token}/layout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ elements }),
+      }),
+      fetch(`/api/workspace/${token}/marketing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ backgroundColor }),
+      }),
+    ]);
+    const layoutData = await safeJson(layoutRes);
+    const bgData = await safeJson(bgRes);
     setBusy(false);
-    if (!res.ok) return setError(data?.error || "Couldn't save your design.");
+    if (!layoutRes.ok) return setError(layoutData?.error || "Couldn't save your design.");
+    if (!bgRes.ok) return setError(bgData?.error || "Couldn't save the background color.");
     router.push(`/workspace/${token}`);
   }
 
@@ -126,6 +138,8 @@ export default function EditorPage({ token }: { token: string }) {
             onLogoUploaded={refreshLogo}
             selectedId={selectedId}
             onSelectedIdChange={setSelectedId}
+            backgroundColor={backgroundColor}
+            onBackgroundColorChange={setBackgroundColor}
           />
           <LayersPanel
             elements={elements}
