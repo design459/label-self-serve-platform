@@ -1196,16 +1196,36 @@ input[type="range"] {
   background: #fff;
   border: 1px solid var(--line);
   box-shadow: var(--shadow-card);
-  overflow: hidden;
+  overflow: visible;
 }
 
-.element-toolbar {
-  margin-bottom: 0;
+/* Contextual toolbar that floats right above (or below, near the top edge)
+   the selected element, instead of a fixed panel under the canvas. */
+.floating-toolbar {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(4, 43, 36, 0.18);
+  padding: 6px;
+  width: max-content;
+  max-width: 320px;
+  flex-wrap: wrap;
 }
 
-.element-toolbar select,
-.element-toolbar input[type="color"] {
+.floating-toolbar select,
+.floating-toolbar input[type="color"] {
   width: auto;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.element-content-editor {
+  margin-bottom: 0;
 }
 
 .toolbar-divider {

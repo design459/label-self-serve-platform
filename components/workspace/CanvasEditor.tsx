@@ -6,6 +6,7 @@ import {
   BringToFront,
   SendToBack,
   Trash2,
+  Copy,
   Type,
   Shapes,
   LayoutTemplate,
@@ -91,6 +92,14 @@ export default function CanvasEditor({
     onSelectedIdChange(null);
   }
 
+  function duplicateElement(id: string) {
+    const el = elements.find((e) => e.id === id);
+    if (!el || !isDeletable(el)) return; // only freeform text/icon can be duplicated — bound types must stay exactly one each
+    const copy: CanvasElement = { ...el, id: randomId(), x: Math.min(90, el.x + 4), y: Math.min(90, el.y + 4) };
+    onElementsChange([...elements, copy]);
+    onSelectedIdChange(copy.id);
+  }
+
   function addText() {
     const el: CanvasElement = {
       id: randomId(),
@@ -144,6 +153,21 @@ export default function CanvasEditor({
   }
 
   const selected = elements.find((e) => e.id === selectedId) ?? null;
+
+  // Where to float the contextual toolbar: right above the selected
+  // element, flipping to below it when there isn't room above (near the
+  // top edge of the stage).
+  const selRect = selected
+    ? {
+        x: (selected.x / 100) * stageW,
+        y: (selected.y / 100) * stageH,
+        w: (selected.w / 100) * stageW,
+        h: (selected.h / 100) * stageH,
+      }
+    : null;
+  const TOOLBAR_H = 40;
+  const toolbarTop = selRect ? (selRect.y - TOOLBAR_H - 8 < 0 ? selRect.y + selRect.h + 8 : selRect.y - TOOLBAR_H - 8) : 0;
+  const toolbarLeft = selRect ? Math.max(0, Math.min(selRect.x, stageW - 260)) : 0;
 
   function toggleTab(tab: "text" | "icons" | "templates" | "photo") {
     setActiveTab((cur) => (cur === tab ? null : tab));
@@ -238,38 +262,12 @@ export default function CanvasEditor({
               </Rnd>
             );
           })}
-        </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/svg+xml"
-          style={{ display: "none" }}
-          onChange={(e) => e.target.files?.[0] && uploadPhoto(e.target.files[0])}
-        />
-
-        {selected && (
-          <div className="card element-toolbar">
-            {selected.type === "text" && (
-              <div className="field">
-                <label>Text</label>
-                <textarea
-                  value={selected.content}
-                  maxLength={300}
-                  onChange={(e) => updateElement(selected.id, { content: e.target.value } as Partial<CanvasElement>)}
-                />
-              </div>
-            )}
-            {selected.type === "icon" && (
-              <div className="field">
-                <label>Icon</label>
-                <IconPicker value={selected.iconId} onSelect={(id) => updateElement(selected.id, { iconId: id } as Partial<CanvasElement>)} />
-              </div>
-            )}
-            <div className="btn-row" style={{ marginTop: 0, flexWrap: "wrap", alignItems: "center" }}>
+          {selected && selRect && (
+            <div className="floating-toolbar" style={{ top: toolbarTop, left: toolbarLeft }}>
               {selected.type === "photo" ? (
                 <button type="button" className="icon-btn" title="Replace logo" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-                  <ImageUp size={18} />
+                  <ImageUp size={16} />
                 </button>
               ) : selected.type === "icon" ? (
                 <input
@@ -290,19 +288,18 @@ export default function CanvasEditor({
                       </option>
                     ))}
                   </select>
-                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                    Size
-                    <input
-                      type="range"
-                      min={1.5}
-                      max={12}
-                      step={0.5}
-                      value={selected.style.fontSize}
-                      onChange={(e) =>
-                        updateElement(selected.id, { style: { ...selected.style, fontSize: Number(e.target.value) } } as Partial<CanvasElement>)
-                      }
-                    />
-                  </label>
+                  <input
+                    type="range"
+                    min={1.5}
+                    max={12}
+                    step={0.5}
+                    value={selected.style.fontSize}
+                    title="Font size"
+                    style={{ width: 60 }}
+                    onChange={(e) =>
+                      updateElement(selected.id, { style: { ...selected.style, fontSize: Number(e.target.value) } } as Partial<CanvasElement>)
+                    }
+                  />
                   <input
                     type="color"
                     value={selected.style.color}
@@ -325,38 +322,72 @@ export default function CanvasEditor({
               <span className="toolbar-divider" />
 
               <button type="button" className="icon-btn" title="Align left" onClick={() => alignElement(selected.id, "left")}>
-                <AlignHorizontalJustifyStart size={16} />
+                <AlignHorizontalJustifyStart size={14} />
               </button>
               <button type="button" className="icon-btn" title="Align center" onClick={() => alignElement(selected.id, "centerH")}>
-                <AlignHorizontalJustifyCenter size={16} />
+                <AlignHorizontalJustifyCenter size={14} />
               </button>
               <button type="button" className="icon-btn" title="Align right" onClick={() => alignElement(selected.id, "right")}>
-                <AlignHorizontalJustifyEnd size={16} />
+                <AlignHorizontalJustifyEnd size={14} />
               </button>
               <button type="button" className="icon-btn" title="Align top" onClick={() => alignElement(selected.id, "top")}>
-                <AlignVerticalJustifyStart size={16} />
+                <AlignVerticalJustifyStart size={14} />
               </button>
               <button type="button" className="icon-btn" title="Align middle" onClick={() => alignElement(selected.id, "centerV")}>
-                <AlignVerticalJustifyCenter size={16} />
+                <AlignVerticalJustifyCenter size={14} />
               </button>
               <button type="button" className="icon-btn" title="Align bottom" onClick={() => alignElement(selected.id, "bottom")}>
-                <AlignVerticalJustifyEnd size={16} />
+                <AlignVerticalJustifyEnd size={14} />
               </button>
 
               <span className="toolbar-divider" />
 
               <button type="button" className="icon-btn" title="Bring to front" onClick={() => bringToFront(selected.id)}>
-                <BringToFront size={16} />
+                <BringToFront size={14} />
               </button>
               <button type="button" className="icon-btn" title="Send to back" onClick={() => sendToBack(selected.id)}>
-                <SendToBack size={16} />
+                <SendToBack size={14} />
               </button>
               {isDeletable(selected) && (
-                <button type="button" className="icon-btn icon-btn-danger" title="Delete" onClick={() => deleteElement(selected.id)}>
-                  <Trash2 size={16} />
-                </button>
+                <>
+                  <button type="button" className="icon-btn" title="Duplicate" onClick={() => duplicateElement(selected.id)}>
+                    <Copy size={14} />
+                  </button>
+                  <button type="button" className="icon-btn icon-btn-danger" title="Delete" onClick={() => deleteElement(selected.id)}>
+                    <Trash2 size={14} />
+                  </button>
+                </>
               )}
             </div>
+          )}
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          style={{ display: "none" }}
+          onChange={(e) => e.target.files?.[0] && uploadPhoto(e.target.files[0])}
+        />
+
+        {selected && (selected.type === "text" || selected.type === "icon") && (
+          <div className="card element-content-editor">
+            {selected.type === "text" && (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Text</label>
+                <textarea
+                  value={selected.content}
+                  maxLength={300}
+                  onChange={(e) => updateElement(selected.id, { content: e.target.value } as Partial<CanvasElement>)}
+                />
+              </div>
+            )}
+            {selected.type === "icon" && (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Change icon</label>
+                <IconPicker value={selected.iconId} onSelect={(id) => updateElement(selected.id, { iconId: id } as Partial<CanvasElement>)} />
+              </div>
+            )}
           </div>
         )}
       </div>
