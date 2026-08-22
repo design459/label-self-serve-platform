@@ -37,10 +37,17 @@ export default function SubmitForReview({ token, summary, onSubmitted }: Props) 
   if (order.status === "submitted" && latestIsSubmitted) {
     return (
       <div className="notice-box">
-        <p style={{ margin: "0 0 12px" }}>
-          Submitted — waiting on compliance review. You can still regenerate if you spot something, which will need
-          re-submitting.
-        </p>
+        {summary.needsRegeneration ? (
+          <p style={{ margin: "0 0 12px" }}>
+            You've made design changes since staff review started — this submission no longer reflects your latest
+            edits. Regenerate artwork above and re-submit so what's under review matches what you see here.
+          </p>
+        ) : (
+          <p style={{ margin: "0 0 12px" }}>
+            Submitted — waiting on compliance review. You can still regenerate if you spot something, which will need
+            re-submitting.
+          </p>
+        )}
         <Link className="btn btn-outline" href="/">
           Back to home
         </Link>
