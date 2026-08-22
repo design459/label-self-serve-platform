@@ -23,6 +23,12 @@ import {
   Thermometer,
   HeartPulse,
   Truck,
+  Square,
+  Circle,
+  Triangle,
+  Hexagon,
+  Pentagon,
+  Diamond,
   type LucideIcon,
 } from "lucide-react";
 import { IconId } from "@/lib/canvasLayout";
@@ -57,4 +63,10 @@ export const ICON_COMPONENTS: Record<IconId, LucideIcon> = {
   thermometer: Thermometer,
   "heart-pulse": HeartPulse,
   truck: Truck,
+  square: Square,
+  circle: Circle,
+  triangle: Triangle,
+  hexagon: Hexagon,
+  pentagon: Pentagon,
+  diamond: Diamond,
 };

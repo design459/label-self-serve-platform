@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { THEME_PRESETS, Theme } from "@/lib/types";
 import { Summary, safeJson } from "./types";
-import CanvasEditorModal from "./CanvasEditorModal";
 import LayoutVariantPicker from "./LayoutVariantPicker";
 
 interface Props {
@@ -15,9 +15,9 @@ interface Props {
 }
 
 export default function LabelPreview({ token, summary, theme, onThemeChange, onGenerated }: Props) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
   const [showVariantPicker, setShowVariantPicker] = useState(false);
   const { order } = summary;
   const capReached = order.revisionsUsed >= order.revisionLimit;
@@ -90,7 +90,12 @@ export default function LabelPreview({ token, summary, theme, onThemeChange, onG
       </div>
       {error && <div className="error-box">{error}</div>}
       <div className="btn-row" style={{ marginTop: 0 }}>
-        <button type="button" className="btn btn-outline" onClick={() => setEditing(true)} disabled={!order.selectedTemplateId}>
+        <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() => router.push(`/workspace/${token}/edit`)}
+          disabled={!order.selectedTemplateId}
+        >
           Edit label
         </button>
         <button className="btn" disabled={busy || capReached || !order.selectedTemplateId} onClick={generate}>
@@ -106,15 +111,6 @@ export default function LabelPreview({ token, summary, theme, onThemeChange, onG
             style={{ width: "100%", height: 500, border: "1px solid var(--line)", borderRadius: 8 }}
           />
         </div>
-      )}
-
-      {editing && (
-        <CanvasEditorModal
-          token={token}
-          summary={summary}
-          onClose={() => setEditing(false)}
-          onSaved={onGenerated}
-        />
       )}
     </div>
   );

@@ -1082,7 +1082,9 @@ input[type="range"] {
   object-fit: cover;
 }
 
-/* Freeform canvas editor + its "Edit label" popup modal. */
+/* Generic modal overlay — no longer used by the label editor (moved to its
+   own full page, see .editor-* below) but kept for any future confirm/
+   dialog use. */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1290,4 +1292,48 @@ input[type="range"] {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+}
+
+/* Full-page label editor ("Edit label" now opens its own page instead of a
+   modal, closer to how a dedicated design tool devotes the whole window to
+   editing). */
+.editor-page {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.editor-topbar-title {
+  flex: 1;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-body {
+  flex: 1;
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.editor-body .canvas-workspace-outer {
+  margin-bottom: 0;
+  justify-content: center;
 }

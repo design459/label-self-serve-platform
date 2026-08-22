@@ -85,6 +85,7 @@ export const ICON_ALLOWLIST = [
   "award", "circle-check", "sun", "sprout", "package", "star",
   "sparkles", "zap", "apple", "wheat", "milk", "fish",
   "gem", "crown", "snowflake", "thermometer", "heart-pulse", "truck",
+  "square", "circle", "triangle", "hexagon", "pentagon", "diamond",
 ] as const;
 
 export type IconId = (typeof ICON_ALLOWLIST)[number];
