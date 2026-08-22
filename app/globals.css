@@ -1315,6 +1315,92 @@ input[type="range"] {
   gap: 6px;
 }
 
+/* Background editor — a right-docked panel (rather than the shared
+   rail-panel used by the other tabs) matching the reference design tool's
+   "Edit background" panel. Sits below the sticky topbar (top offset ~= its
+   height) but above the floating toolbar and zoom control so it doesn't
+   get overlapped by either while open. */
+.bg-side-panel {
+  position: fixed;
+  top: 64px;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  background: var(--paper);
+  border-left: 1px solid var(--line);
+  box-shadow: -8px 0 24px rgba(16, 24, 22, 0.1);
+  padding: 20px;
+  overflow-y: auto;
+  z-index: 32;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bg-side-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.bg-side-panel-tab {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--select-blue);
+  color: var(--select-blue);
+  font-weight: 600;
+  font-size: 13px;
+  width: fit-content;
+}
+
+.bg-sv-square {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  border-radius: 8px;
+  background-image: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.bg-sv-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.bg-hue-bar {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.bg-hue-handle {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 /* Full-page label editor ("Edit label" now opens its own page instead of a
    modal, closer to how a dedicated design tool devotes the whole window to
    editing). */

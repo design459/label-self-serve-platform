@@ -27,6 +27,7 @@ import { CanvasElement, IconId, isDeletable } from "@/lib/canvasLayout";
 import { Summary } from "./types";
 import IconPicker from "./IconPicker";
 import LayoutVariantPicker from "./LayoutVariantPicker";
+import BackgroundPanel from "./BackgroundPanel";
 import { ElementPreview } from "./LabelStagePreview";
 
 const STAGE_MAX_WIDTH = 640;
@@ -249,7 +250,7 @@ export default function CanvasEditor({
         </button>
       </div>
 
-      {activeTab && (
+      {activeTab && activeTab !== "background" && (
         <div className="editor-rail-panel">
           {activeTab === "text" && (
             <>
@@ -279,35 +280,20 @@ export default function CanvasEditor({
               </button>
             </>
           )}
-          {activeTab === "background" && (
-            <>
-              <p className="wizard-section-label">Edit background</p>
-              <div className="field">
-                <label>Hex color</label>
-                <input
-                  type="text"
-                  value={backgroundColor}
-                  onChange={(e) => {
-                    const v = e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`;
-                    onBackgroundColorChange(v, { coalesce: true }); // allow typing mid-hex; invalid values just won't preview correctly until complete
-                  }}
-                  maxLength={7}
-                />
-              </div>
-              <div className="palette-row">
-                {THEME_PRESETS.map((preset, i) => (
-                  <div
-                    key={i}
-                    className={`swatch ${backgroundColor === preset.backgroundColor ? "selected" : ""}`}
-                    style={{ background: preset.backgroundColor, boxShadow: "inset 0 0 0 1px var(--line)" }}
-                    onClick={() => onBackgroundColorChange(preset.backgroundColor)}
-                    title={preset.backgroundColor}
-                  />
-                ))}
-              </div>
-            </>
-          )}
         </div>
+      )}
+
+      {activeTab === "background" && (
+        <BackgroundPanel
+          value={backgroundColor}
+          onChange={onBackgroundColorChange}
+          projectColors={THEME_PRESETS.map((p) => p.backgroundColor)}
+          brandColors={[
+            { label: "Primary", color: order.theme?.primaryColor ?? THEME_PRESETS[0].primaryColor },
+            { label: "Accent", color: order.theme?.accentColor ?? THEME_PRESETS[0].accentColor },
+          ]}
+          onClose={() => setActiveTab(null)}
+        />
       )}
 
       <div className="canvas-stage-col">
