@@ -37,7 +37,12 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
     db.from("compliance_reviews").select("*").eq("label_order_id", o.id).order("decided_at", { ascending: false }),
   ]);
 
-  const proofUrl = design?.proof_storage_path ? await signedUrlFor(design.proof_storage_path) : null;
+  const proofPaths: string[] = Array.isArray(design?.proof_storage_paths)
+    ? design.proof_storage_paths
+    : design?.proof_storage_path
+    ? [design.proof_storage_path]
+    : [];
+  const proofUrls = (await Promise.all(proofPaths.map((p) => signedUrlFor(p)))).filter((u): u is string => u !== null);
 
   return (
     <div>
@@ -49,12 +54,23 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
         </p>
 
         <div className="card">
-          <h2>Submitted proof</h2>
+          <h2>Submitted proof{proofUrls.length > 1 ? `s (${proofUrls.length} pages)` : ""}</h2>
           <p className="field-hint">
             Revision {design?.revision_number ?? "—"} of {o.revision_limit} used ({o.revisions_used} used total).
           </p>
-          {proofUrl ? (
-            <img src={proofUrl} alt="Label proof" style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, display: "block" }} />
+          {proofUrls.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {proofUrls.map((url, i) => (
+                <div key={i}>
+                  {proofUrls.length > 1 && (
+                    <p className="field-hint" style={{ margin: "0 0 4px" }}>
+                      Page {i + 1} of {proofUrls.length}
+                    </p>
+                  )}
+                  <img src={url} alt={`Label proof page ${i + 1}`} style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, display: "block" }} />
+                </div>
+              ))}
+            </div>
           ) : (
             <p>No proof has been generated yet.</p>
           )}

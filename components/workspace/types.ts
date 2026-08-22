@@ -49,8 +49,11 @@ export interface Summary {
   panel: CategoryPanelTemplate | null;
   canvasLayout: CanvasElement[] | null;
   elements: CanvasElement[];
+  extraPages: CanvasElement[][];
+  pageCount: number;
   latestDesign: { id: string; revisionNumber: number; isSubmitted: boolean } | null;
   proofUrl: string | null;
+  proofUrls: string[];
   printUrl: string | null;
   lastReview: { decision: string; reason: string | null } | null;
 }

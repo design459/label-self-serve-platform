@@ -275,7 +275,7 @@ export default function CanvasEditor({
           {activeTab === "templates" && (
             <>
               <p className="wizard-section-label">Templates</p>
-              <LayoutVariantPicker token={token} onApplied={(els) => onElementsChange(els)} />
+              <LayoutVariantPicker token={token} apply={false} onApplied={(els) => onElementsChange(els)} />
             </>
           )}
           {activeTab === "photo" && (

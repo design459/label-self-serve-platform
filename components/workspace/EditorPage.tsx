@@ -7,9 +7,10 @@ import { CanvasElement } from "@/lib/canvasLayout";
 import { THEME_PRESETS } from "@/lib/types";
 import { Summary, ThemeEdits, safeJson } from "./types";
 import CanvasEditor from "./CanvasEditor";
+import PagesPanel from "./PagesPanel";
 
 interface Snapshot {
-  elements: CanvasElement[];
+  pages: CanvasElement[][];
   theme: ThemeEdits;
 }
 
@@ -20,6 +21,12 @@ const DEFAULT_THEME_EDITS: ThemeEdits = {
   customColors: [],
 };
 
+// Matches lib/canvasLayout.ts's MAX_LABEL_PAGES — kept as a plain literal
+// here rather than imported, since importing it would pull the whole
+// (Node-crypto-dependent) canvasLayout module's non-type exports into the
+// client bundle just for one constant.
+const MAX_LABEL_PAGES = 6;
+
 // How long a run of coalescing edits (typing, dragging a slider) stays
 // merged into a single undo step before the next edit starts a fresh one —
 // long enough that fast typing doesn't fragment into one step per
@@ -27,23 +34,36 @@ const DEFAULT_THEME_EDITS: ThemeEdits = {
 // this thing."
 const COALESCE_MS = 600;
 
+function randomId(): string {
+  return Math.random().toString(16).slice(2, 10);
+}
+
 // Full dedicated editor page (not a modal) — closer to how a real design
 // tool devotes the whole window to editing. Reachable from "Edit label" in
 // LabelPreview.tsx, returns to /workspace/[token] on Cancel/Save.
+//
+// A label order can have more than one page (e.g. front + back), all
+// sharing the same product data/theme/font/template — `pages[0]` is always
+// what used to be the order's single `elements` array; `pages[1:]` are the
+// extra faces. `activePageIndex` says which page the canvas/toolbar/rail
+// are currently editing; switching pages is not itself an undoable action.
 export default function EditorPage({ token }: { token: string }) {
   const router = useRouter();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [elements, setElementsRaw] = useState<CanvasElement[]>([]);
+  const [pages, setPagesRaw] = useState<CanvasElement[][]>([]);
+  const [activePageIndex, setActivePageIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [theme, setThemeRaw] = useState<ThemeEdits>(DEFAULT_THEME_EDITS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Undo/redo history over {elements, theme} together, so undoing a
-  // background change and undoing an element edit share one timeline,
-  // matching how a single Ctrl+Z is expected to behave.
+  const elements = pages[activePageIndex] ?? [];
+
+  // Undo/redo history over {pages, theme} together, so undoing a
+  // background change and undoing an element edit (on any page) share one
+  // timeline, matching how a single Ctrl+Z is expected to behave.
   const [past, setPast] = useState<Snapshot[]>([]);
   const [future, setFuture] = useState<Snapshot[]>([]);
   const lastEditAtRef = useRef(0);
@@ -51,16 +71,16 @@ export default function EditorPage({ token }: { token: string }) {
   function commit(patch: Partial<Snapshot>, coalesce: boolean) {
     const now = Date.now();
     if (!coalesce || now - lastEditAtRef.current >= COALESCE_MS) {
-      setPast((p) => [...p, { elements, theme }]);
+      setPast((p) => [...p, { pages, theme }]);
       setFuture([]);
     }
     lastEditAtRef.current = now;
-    if (patch.elements !== undefined) setElementsRaw(patch.elements);
+    if (patch.pages !== undefined) setPagesRaw(patch.pages);
     if (patch.theme !== undefined) setThemeRaw(patch.theme);
   }
 
   function setElements(els: CanvasElement[], opts?: { coalesce?: boolean }) {
-    commit({ elements: els }, opts?.coalesce ?? false);
+    commit({ pages: pages.map((p, i) => (i === activePageIndex ? els : p)) }, opts?.coalesce ?? false);
   }
 
   function setTheme(patch: Partial<ThemeEdits>, opts?: { coalesce?: boolean }) {
@@ -70,19 +90,64 @@ export default function EditorPage({ token }: { token: string }) {
   function undo() {
     if (past.length === 0) return;
     const prev = past[past.length - 1];
-    setFuture((f) => [{ elements, theme }, ...f]);
+    setFuture((f) => [{ pages, theme }, ...f]);
     setPast((p) => p.slice(0, -1));
-    setElementsRaw(prev.elements);
+    setPagesRaw(prev.pages);
     setThemeRaw(prev.theme);
+    setActivePageIndex((i) => Math.min(i, prev.pages.length - 1));
   }
 
   function redo() {
     if (future.length === 0) return;
     const next = future[0];
-    setPast((p) => [...p, { elements, theme }]);
+    setPast((p) => [...p, { pages, theme }]);
     setFuture((f) => f.slice(1));
-    setElementsRaw(next.elements);
+    setPagesRaw(next.pages);
     setThemeRaw(next.theme);
+    setActivePageIndex((i) => Math.min(i, next.pages.length - 1));
+  }
+
+  function goToPage(index: number) {
+    if (index < 0 || index >= pages.length) return;
+    setActivePageIndex(index);
+    setSelectedId(null);
+  }
+
+  async function addPage() {
+    if (pages.length >= MAX_LABEL_PAGES) return;
+    setError(null);
+    // A fresh default layout comes from the server (buildDefaultLayout()
+    // uses Node's crypto for element ids, so it can't run client-side) —
+    // apply:false means this is a pure compute, not an immediate save; it
+    // joins the local draft like any other edit, persisted on Save & close.
+    const res = await fetch(`/api/workspace/${token}/layout-variant`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ variant: "classic", apply: false }),
+    });
+    const data = await safeJson(res);
+    if (!res.ok) return setError(data?.error || "Couldn't add a new page.");
+    const nextPages = [...pages, data.elements as CanvasElement[]];
+    commit({ pages: nextPages }, false);
+    setActivePageIndex(nextPages.length - 1);
+    setSelectedId(null);
+  }
+
+  function duplicatePage() {
+    if (pages.length >= MAX_LABEL_PAGES) return;
+    const copy = pages[activePageIndex].map((el) => ({ ...el, id: randomId() }));
+    const nextPages = [...pages.slice(0, activePageIndex + 1), copy, ...pages.slice(activePageIndex + 1)];
+    commit({ pages: nextPages }, false);
+    setActivePageIndex(activePageIndex + 1);
+    setSelectedId(null);
+  }
+
+  function deletePage() {
+    if (pages.length <= 1) return;
+    const nextPages = pages.filter((_, i) => i !== activePageIndex);
+    commit({ pages: nextPages }, false);
+    setActivePageIndex((i) => Math.min(i, nextPages.length - 1));
+    setSelectedId(null);
   }
 
   const load = useCallback(async () => {
@@ -96,7 +161,7 @@ export default function EditorPage({ token }: { token: string }) {
       setLoadError(null);
       setSummary(data);
       setLogoUrl(data.logoUrl);
-      setElementsRaw((prev) => (prev.length === 0 ? data.elements : prev));
+      setPagesRaw((prev) => (prev.length === 0 ? [data.elements, ...(data.extraPages ?? [])] : prev));
       if (data.order.theme) {
         const t = data.order.theme;
         setThemeRaw({
@@ -152,7 +217,7 @@ export default function EditorPage({ token }: { token: string }) {
       fetch(`/api/workspace/${token}/layout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ elements }),
+        body: JSON.stringify({ elements: pages[0] ?? [], extraPages: pages.slice(1) }),
       }),
       fetch(`/api/workspace/${token}/marketing`, {
         method: "POST",
@@ -249,6 +314,16 @@ export default function EditorPage({ token }: { token: string }) {
           />
         </div>
       </div>
+
+      <PagesPanel
+        pageCount={pages.length}
+        activePageIndex={activePageIndex}
+        maxPages={MAX_LABEL_PAGES}
+        onGoTo={goToPage}
+        onDuplicate={duplicatePage}
+        onAdd={addPage}
+        onDelete={deletePage}
+      />
     </div>
   );
 }

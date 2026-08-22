@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOrderByToken } from "@/lib/workspaceAuth";
 import { supabaseAdmin, storageBucket, signedUrlFor, logAudit } from "@/lib/supabaseServer";
 import { buildArtboardHtml, ArtboardInput } from "@/lib/artboard";
-import { buildDefaultLayout } from "@/lib/canvasLayout";
+import { buildDefaultLayout, CanvasElement } from "@/lib/canvasLayout";
 import { generateQrDataUrl } from "@/lib/labelCodes";
 import { launchBrowser } from "@/lib/launchBrowser";
 import { CategoryPanelTemplate, FONT_PRESETS, PackFormatTemplate, RegulatoryContent, Theme } from "@/lib/types";
@@ -67,6 +67,10 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     const font = FONT_PRESETS.find((f) => f.id === order.font_id) || FONT_PRESETS[0];
     const elements =
       order.canvas_layout ?? buildDefaultLayout(template as PackFormatTemplate, order.category, panel, { fontId: order.font_id });
+    // Extra label faces (front/back, ...) beyond page 1 — see
+    // supabase/migrations/0005_multi_page.sql. Empty for a single-page order.
+    const extraPagesElements: CanvasElement[][] = Array.isArray(order.extra_pages) ? order.extra_pages : [];
+    const allPagesElements: CanvasElement[][] = [elements, ...extraPagesElements];
 
     let logoDataUrl: string | null = null;
     if (logo?.storage_path) {
@@ -118,33 +122,46 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       qrDataUrl,
     };
 
-    const html = buildArtboardHtml({ ...renderInput, watermark: true });
-
     // The in-app "proof" is a PNG, not a PDF — it's only ever viewed on
     // screen (during editing and by staff during review), never sent to a
     // printer, so an image displays far more predictably in the browser
     // than embedding a PDF viewer. The actual print-ready file (produced
     // only on staff approval, app/api/admin/review/[id]/route.ts) stays a
     // PDF, since that one IS the print production deliverable.
-    let pngBuffer: Buffer;
+    //
+    // One PNG per page (front/back, ...), captured from separate Puppeteer
+    // pages within the same browser instance — buildArtboardHtml() always
+    // renders exactly one <div class="sheet">, so each page gets its own
+    // screenshot rather than trying to paginate a raster image.
+    let pngBuffers: Buffer[];
     try {
       const browser = await launchBrowser();
       try {
-        const page = await browser.newPage();
         const widthMm = template.trim_width_mm + template.bleed_mm * 2;
         const heightMm = template.trim_height_mm + template.bleed_mm * 2;
-        // deviceScaleFactor gives a sharper capture without changing the
-        // mm-based CSS layout math (viewport must be large enough to
-        // contain the full .sheet before deviceScaleFactor multiplies it).
-        await page.setViewport({
-          width: Math.ceil(widthMm * 4) + 40,
-          height: Math.ceil(heightMm * 4) + 40,
-          deviceScaleFactor: 2,
-        });
-        await page.setContent(html, { waitUntil: "networkidle0" });
-        const sheet = await page.$(".sheet");
-        if (!sheet) throw new Error("Rendered sheet element not found.");
-        pngBuffer = Buffer.from(await sheet.screenshot({ type: "png" }));
+        pngBuffers = await Promise.all(
+          allPagesElements.map(async (pageElements) => {
+            const page = await browser.newPage();
+            try {
+              // deviceScaleFactor gives a sharper capture without changing
+              // the mm-based CSS layout math (viewport must be large enough
+              // to contain the full .sheet before deviceScaleFactor
+              // multiplies it).
+              await page.setViewport({
+                width: Math.ceil(widthMm * 4) + 40,
+                height: Math.ceil(heightMm * 4) + 40,
+                deviceScaleFactor: 2,
+              });
+              const html = buildArtboardHtml({ ...renderInput, elements: pageElements, watermark: true });
+              await page.setContent(html, { waitUntil: "networkidle0" });
+              const sheet = await page.$(".sheet");
+              if (!sheet) throw new Error("Rendered sheet element not found.");
+              return Buffer.from(await sheet.screenshot({ type: "png" }));
+            } finally {
+              await page.close();
+            }
+          })
+        );
       } finally {
         await browser.close();
       }
@@ -155,16 +172,24 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       );
     }
 
-    const proofPath = `orders/${order.id}/designs/${newDesign.id}/proof.png`;
-    const { error: uploadError } = await db.storage.from(storageBucket()).upload(proofPath, pngBuffer, {
-      contentType: "image/png",
-      upsert: true,
-    });
+    const proofPaths = pngBuffers.map((_, i) => `orders/${order.id}/designs/${newDesign.id}/proof-${i + 1}.png`);
+    const uploadResults = await Promise.all(
+      pngBuffers.map((buf, i) =>
+        db.storage.from(storageBucket()).upload(proofPaths[i], buf, { contentType: "image/png", upsert: true })
+      )
+    );
+    const uploadError = uploadResults.find((r) => r.error)?.error;
     if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
 
     const { error: designUpdateError } = await db
       .from("label_designs")
-      .update({ theme, render_input: renderInput, proof_storage_path: proofPath })
+      .update({
+        theme,
+        render_input: renderInput,
+        extra_pages_elements: extraPagesElements,
+        proof_storage_path: proofPaths[0],
+        proof_storage_paths: proofPaths,
+      })
       .eq("id", newDesign.id);
     if (designUpdateError) {
       return NextResponse.json({ error: `Failed to save rendered proof: ${designUpdateError.message}` }, { status: 500 });
@@ -173,14 +198,16 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     await logAudit(order.id, "customer", "revision_generated", {
       designId: newDesign.id,
       revisionNumber: newDesign.revision_number,
+      pageCount: allPagesElements.length,
     });
 
-    const proofUrl = await signedUrlFor(proofPath);
+    const proofUrls = await Promise.all(proofPaths.map((p) => signedUrlFor(p)));
 
     return NextResponse.json({
       designId: newDesign.id,
       revisionNumber: newDesign.revision_number,
-      proofUrl,
+      proofUrl: proofUrls[0],
+      proofUrls,
     });
   } catch (err) {
     return apiCatch(err);

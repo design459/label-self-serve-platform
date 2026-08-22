@@ -246,11 +246,13 @@ function renderElement(el: CanvasElement, ctx: RenderCtx): string {
   }
 }
 
-// Single source of layout truth. The customer wizard's generate step and
-// the staff approval route (app/api/admin/review/[id]/route.ts) both feed
-// this same function — one render target, not two hand-synced copies, so
-// what a customer designs can't drift from what gets submitted/approved.
-export function buildArtboardHtml(input: ArtboardInput): string {
+// One <div class="sheet"> for one ArtboardInput — shared by the single-page
+// (buildArtboardHtml) and multi-page (buildMultiPageArtboardHtml) entry
+// points so there's exactly one place that turns an ArtboardInput into
+// sheet markup. `pageBreak` adds the CSS that makes Puppeteer's page.pdf()
+// start a new PDF page after this sheet — omitted for the last (or only)
+// page in a document.
+function renderSheet(input: ArtboardInput, pageBreak: boolean): string {
   const { template, theme, regulatory, font } = input;
   const widthMm = template.trim_width_mm + template.bleed_mm * 2;
   const heightMm = template.trim_height_mm + template.bleed_mm * 2;
@@ -269,6 +271,13 @@ export function buildArtboardHtml(input: ArtboardInput): string {
 
   const elementsHtml = (input.elements ?? []).map((el) => renderElement(el, ctx)).join("");
 
+  return `<div class="sheet" style="width:${widthMm}mm; height:${heightMm}mm; background:${backgroundCss(theme)}; font-family:${font.body}; color:#1b2430; ${pageBreak ? "page-break-after: always;" : ""}">
+    ${elementsHtml}
+    ${input.watermark ? `<div class="watermark"><span>PROOF — NOT APPROVED FOR PRINT</span></div>` : ""}
+  </div>`;
+}
+
+function documentShell(sheetsHtml: string): string {
   return `<!doctype html>
 <html>
 <head>
@@ -278,11 +287,6 @@ export function buildArtboardHtml(input: ArtboardInput): string {
   html, body { margin: 0; padding: 0; }
   .sheet {
     position: relative;
-    width: ${widthMm}mm;
-    height: ${heightMm}mm;
-    background: ${backgroundCss(theme)};
-    font-family: ${font.body};
-    color: #1b2430;
     overflow: hidden;
   }
   .watermark {
@@ -297,11 +301,30 @@ export function buildArtboardHtml(input: ArtboardInput): string {
 </style>
 </head>
 <body>
-  <div class="sheet">
-    ${elementsHtml}
-
-    ${input.watermark ? `<div class="watermark"><span>PROOF — NOT APPROVED FOR PRINT</span></div>` : ""}
-  </div>
+  ${sheetsHtml}
 </body>
 </html>`;
+}
+
+// Single source of layout truth. The customer wizard's generate step and
+// the staff approval route (app/api/admin/review/[id]/route.ts) both feed
+// this same function — one render target, not two hand-synced copies, so
+// what a customer designs can't drift from what gets submitted/approved.
+// Always produces exactly one <div class="sheet"> — callers that screenshot
+// a single page (app/api/workspace/[token]/generate/route.ts) rely on that.
+export function buildArtboardHtml(input: ArtboardInput): string {
+  return documentShell(renderSheet(input, false));
+}
+
+// Multi-page variant — one ArtboardInput per label face (front/back, ...),
+// all sharing the same physical template/theme/font, rendered as one HTML
+// document with a page-break between each sheet. Feeding this to a single
+// Puppeteer page.pdf() call produces one real multi-page PDF, since
+// page.pdf() paginates on CSS page-break-after natively — no per-page
+// screenshotting or PDF-merge step needed. Used only by the staff approval
+// route's print-file generation; the customer-facing PNG proof still
+// renders one page at a time via buildArtboardHtml (see generate/route.ts).
+export function buildMultiPageArtboardHtml(inputs: ArtboardInput[]): string {
+  const sheetsHtml = inputs.map((input, i) => renderSheet(input, i < inputs.length - 1)).join("\n");
+  return documentShell(sheetsHtml);
 }

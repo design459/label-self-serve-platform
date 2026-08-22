@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderByToken } from "@/lib/workspaceAuth";
 import { supabaseAdmin, signedUrlFor } from "@/lib/supabaseServer";
-import { buildDefaultLayout } from "@/lib/canvasLayout";
+import { buildDefaultLayout, CanvasElement } from "@/lib/canvasLayout";
 import { PackFormatTemplate } from "@/lib/types";
 import { apiCatch } from "@/lib/apiError";
 
@@ -45,6 +45,12 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
 
   const logoUrl = logo?.storage_path ? await signedUrlFor(logo.storage_path) : null;
   const proofUrl = latestDesign?.proof_storage_path ? await signedUrlFor(latestDesign.proof_storage_path) : null;
+  const proofPaths: string[] = Array.isArray(latestDesign?.proof_storage_paths)
+    ? latestDesign.proof_storage_paths
+    : latestDesign?.proof_storage_path
+    ? [latestDesign.proof_storage_path]
+    : [];
+  const proofUrls = await Promise.all(proofPaths.map((p) => signedUrlFor(p)));
   const printUrl =
     order.status === "approved" && latestDesign?.print_storage_path
       ? await signedUrlFor(latestDesign.print_storage_path)
@@ -56,6 +62,10 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     (selectedTemplate
       ? buildDefaultLayout(selectedTemplate as PackFormatTemplate, order.category, panel, { fontId: order.font_id })
       : []);
+  // Extra pages (front/back, ...) beyond page 1 — returned as-stored, same
+  // as page 1's canvas_layout above (already validated at write time by
+  // app/api/workspace/[token]/layout/route.ts; no re-validation on read).
+  const extraPages: CanvasElement[][] = Array.isArray(order.extra_pages) ? order.extra_pages : [];
 
   return NextResponse.json({
     order: {
@@ -82,10 +92,13 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     panel: panel ?? null,
     canvasLayout: order.canvas_layout ?? null,
     elements,
+    extraPages,
+    pageCount: 1 + extraPages.length,
     latestDesign: latestDesign
       ? { id: latestDesign.id, revisionNumber: latestDesign.revision_number, isSubmitted: latestDesign.is_submitted }
       : null,
     proofUrl,
+    proofUrls,
     printUrl,
     lastReview:
       order.status === "rejected" && latestReview ? { decision: latestReview.decision, reason: latestReview.reason } : null,

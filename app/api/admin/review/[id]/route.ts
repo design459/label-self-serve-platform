@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentStaff } from "@/lib/supabaseAuth";
 import { supabaseAdmin, storageBucket, logAudit } from "@/lib/supabaseServer";
-import { buildArtboardHtml, ArtboardInput } from "@/lib/artboard";
+import { buildMultiPageArtboardHtml, ArtboardInput } from "@/lib/artboard";
+import { CanvasElement } from "@/lib/canvasLayout";
 import { launchBrowser } from "@/lib/launchBrowser";
 import { apiCatch } from "@/lib/apiError";
 
@@ -52,11 +53,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           { status: 500 }
         );
       }
-      const html = buildArtboardHtml({
-        ...(design.render_input as Omit<ArtboardInput, "watermark">),
-        watermark: false,
-      });
-      const template = (design.render_input as ArtboardInput).template;
+      // Page 1's full ArtboardInput is design.render_input; extra pages
+      // (front/back, ...) share every field with it except `elements` —
+      // design.extra_pages_elements holds just the part that varies per
+      // page, reconstructed here into full inputs for the multi-page PDF.
+      const page1Input = design.render_input as Omit<ArtboardInput, "watermark">;
+      const extraPagesElements: CanvasElement[][] = Array.isArray(design.extra_pages_elements) ? design.extra_pages_elements : [];
+      const allInputs: Omit<ArtboardInput, "watermark">[] = [page1Input, ...extraPagesElements.map((els) => ({ ...page1Input, elements: els }))];
+
+      const html = buildMultiPageArtboardHtml(allInputs.map((input) => ({ ...input, watermark: false })));
+      const template = page1Input.template;
 
       let pdfBuffer: Buffer;
       try {
@@ -66,6 +72,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           await page.setContent(html, { waitUntil: "networkidle0" });
           const widthMm = template.trim_width_mm + template.bleed_mm * 2;
           const heightMm = template.trim_height_mm + template.bleed_mm * 2;
+          // Every page shares the same physical sheet size (one template
+          // per order), so a single width/height applies document-wide;
+          // .sheet's own page-break-after CSS (see buildMultiPageArtboardHtml)
+          // is what actually splits the content into separate PDF pages.
           pdfBuffer = Buffer.from(
             await page.pdf({ width: `${widthMm}mm`, height: `${heightMm}mm`, printBackground: true })
           );

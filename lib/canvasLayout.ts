@@ -539,3 +539,18 @@ export function validateCanvasElements(
 
   return validated;
 }
+
+// A label order can have more than one page (e.g. front + back), all
+// sharing the same template/category/panel/font — page 1 is always
+// label_orders.canvas_layout, validated by validateCanvasElements() above;
+// this validates the array of EXTRA pages (label_orders.extra_pages), each
+// page independently self-healed the same way page 1 is.
+export const MAX_LABEL_PAGES = 6;
+
+export function validateExtraPages(
+  raw: unknown,
+  ctx: { orderFontId: string; template: PackFormatTemplate; category: ProductCategory; panel: CategoryPanelTemplate | null }
+): CanvasElement[][] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, MAX_LABEL_PAGES - 1).map((pageElements) => validateCanvasElements(pageElements, ctx));
+}

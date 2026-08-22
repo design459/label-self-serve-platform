@@ -7,12 +7,17 @@ import { safeJson } from "./types";
 interface Props {
   token: string;
   onApplied: (elements: CanvasElement[]) => void;
+  // false when the caller manages its own draft/save (the full-page
+  // editor's per-page Templates tab) — true (default) immediately
+  // overwrites the order's page-1 canvas_layout, for the pre-customization
+  // "pick a starting layout" prompt on the main workspace page.
+  apply?: boolean;
 }
 
 // A small "template gallery" — a few hand-designed starting arrangements,
 // not an external gallery. Text label + one-line description only, no live
 // thumbnail — same pattern SheetPicker/category cards already use.
-export default function LayoutVariantPicker({ token, onApplied }: Props) {
+export default function LayoutVariantPicker({ token, onApplied, apply: applyImmediately = true }: Props) {
   const [busy, setBusy] = useState<LayoutVariant | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +27,7 @@ export default function LayoutVariantPicker({ token, onApplied }: Props) {
     const res = await fetch(`/api/workspace/${token}/layout-variant`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ variant }),
+      body: JSON.stringify({ variant, apply: applyImmediately }),
     });
     const data = await safeJson(res);
     setBusy(null);

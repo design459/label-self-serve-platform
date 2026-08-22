@@ -26,6 +26,13 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
 
     const body = await req.json().catch(() => null);
     const variant: LayoutVariant = VALID_VARIANTS.includes(body?.variant) ? body.variant : "classic";
+    // Defaults to true (the original behavior: immediately overwrite the
+    // order's page-1 canvas_layout) — the full-page editor's Templates tab
+    // passes apply:false instead, since there it's just computing a fresh
+    // default for whichever page is currently active (which might not be
+    // page 1) and relies on its own local draft + Save & close to persist,
+    // same as every other edit made in that editor.
+    const shouldSave = body?.apply !== false;
 
     const db = supabaseAdmin();
     const [{ data: template }, { data: panelTemplate }] = await Promise.all([
@@ -48,15 +55,16 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       panel,
     });
 
-    const { error: updateError } = await db
-      .from("label_orders")
-      .update({ canvas_layout: validated, updated_at: new Date().toISOString() })
-      .eq("id", order.id);
-    if (updateError) {
-      return NextResponse.json({ error: `Failed to apply layout: ${updateError.message}` }, { status: 500 });
+    if (shouldSave) {
+      const { error: updateError } = await db
+        .from("label_orders")
+        .update({ canvas_layout: validated, updated_at: new Date().toISOString() })
+        .eq("id", order.id);
+      if (updateError) {
+        return NextResponse.json({ error: `Failed to apply layout: ${updateError.message}` }, { status: 500 });
+      }
+      await logAudit(order.id, "customer", "layout_variant_applied", { variant });
     }
-
-    await logAudit(order.id, "customer", "layout_variant_applied", { variant });
 
     return NextResponse.json({ ok: true, elements: validated });
   } catch (err) {

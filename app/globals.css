@@ -1310,7 +1310,7 @@ input[type="range"] {
 .zoom-control {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  right: 84px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1379,7 +1379,7 @@ input[type="range"] {
 .bg-side-panel {
   position: fixed;
   top: 64px;
-  right: 0;
+  right: 64px;
   bottom: 0;
   width: 300px;
   background: var(--paper);
@@ -1664,10 +1664,63 @@ input[type="range"] {
 .editor-body {
   flex: 1;
   padding: 24px;
+  padding-right: 88px;
   overflow-x: auto;
 }
 
 .editor-body .canvas-workspace-outer {
   margin-bottom: 0;
   justify-content: center;
+}
+
+/* Always-on right-hand page navigator — see PagesPanel.tsx. Positioned
+   further right than .bg-side-panel (which stops at right:64px) so the two
+   never overlap when the background editor is also open. */
+.pages-panel {
+  position: fixed;
+  top: 64px;
+  right: 0;
+  bottom: 0;
+  width: 64px;
+  background: var(--paper);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 10px;
+  z-index: 10;
+  overflow-y: auto;
+}
+
+.pages-stepper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.pages-stepper-count {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.pages-stepper-of {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.pages-panel-divider {
+  width: 60%;
+  height: 1px;
+  background: var(--line);
+  flex-shrink: 0;
 }

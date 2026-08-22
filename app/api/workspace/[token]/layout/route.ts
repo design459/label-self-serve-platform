@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderByToken } from "@/lib/workspaceAuth";
 import { supabaseAdmin, logAudit } from "@/lib/supabaseServer";
-import { validateCanvasElements } from "@/lib/canvasLayout";
+import { validateCanvasElements, validateExtraPages } from "@/lib/canvasLayout";
 import { CategoryPanelTemplate, PackFormatTemplate } from "@/lib/types";
 import { apiCatch } from "@/lib/apiError";
 
@@ -32,24 +32,28 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     ]);
     if (!template) return NextResponse.json({ error: "Selected label size not found." }, { status: 400 });
 
-    const validated = validateCanvasElements(body.elements, {
+    const validateCtx = {
       orderFontId: order.font_id,
       template: template as PackFormatTemplate,
       category: order.category,
       panel: panelTemplate as CategoryPanelTemplate | null,
-    });
+    };
+    const validated = validateCanvasElements(body.elements, validateCtx);
+    // Extra pages (front/back, ...) beyond page 1 — optional; omitting the
+    // field (or sending a non-array) leaves the order single-page.
+    const extraPages = validateExtraPages(body.extraPages, validateCtx);
 
     const { error: updateError } = await db
       .from("label_orders")
-      .update({ canvas_layout: validated, updated_at: new Date().toISOString() })
+      .update({ canvas_layout: validated, extra_pages: extraPages, updated_at: new Date().toISOString() })
       .eq("id", order.id);
     if (updateError) {
       return NextResponse.json({ error: `Failed to save layout: ${updateError.message}` }, { status: 500 });
     }
 
-    await logAudit(order.id, "customer", "layout_updated", {});
+    await logAudit(order.id, "customer", "layout_updated", { pageCount: 1 + extraPages.length });
 
-    return NextResponse.json({ ok: true, elements: validated });
+    return NextResponse.json({ ok: true, elements: validated, extraPages });
   } catch (err) {
     return apiCatch(err);
   }

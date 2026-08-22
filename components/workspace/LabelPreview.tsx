@@ -46,11 +46,22 @@ export default function LabelPreview({ token, summary, theme, onGenerated }: Pro
       </p>
       {order.selectedTemplateId && (
         <div className="field">
-          <label>Current design</label>
+          <label>{summary.pageCount > 1 ? `Current design (${summary.pageCount} pages)` : "Current design"}</label>
           <p className="field-hint" style={{ marginTop: 0 }}>
             Always up to date with your saved edits — free to check anytime, doesn't use a revision.
           </p>
-          <LabelStagePreview summary={summary} elements={summary.elements} logoUrl={summary.logoUrl} maxWidth={480} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[summary.elements, ...summary.extraPages].map((pageElements, i) => (
+              <div key={i}>
+                {summary.pageCount > 1 && (
+                  <p className="field-hint" style={{ margin: "0 0 4px" }}>
+                    Page {i + 1} of {summary.pageCount}
+                  </p>
+                )}
+                <LabelStagePreview summary={summary} elements={pageElements} logoUrl={summary.logoUrl} maxWidth={480} />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

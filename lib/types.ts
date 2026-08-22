@@ -161,6 +161,9 @@ export interface LabelOrder {
   // actively written to.
   image_position: ImagePosition;
   canvas_layout: CanvasElement[] | null;
+  // Extra label faces beyond page 1 (front/back, ...) — see
+  // supabase/migrations/0005_multi_page.sql. NULL/empty = single-page order.
+  extra_pages: CanvasElement[][] | null;
   source: "staff" | "customer";
   access_token: string;
   status: LabelOrderStatus;
