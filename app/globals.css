@@ -1227,6 +1227,7 @@ input[type="range"] {
   position: relative;
   z-index: 15;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   background: var(--paper);
@@ -1235,7 +1236,6 @@ input[type="range"] {
   box-shadow: var(--shadow-card);
   padding: 6px 10px;
   margin: 0 auto 10px;
-  overflow-x: auto;
 }
 
 .canvas-toolbar select,
