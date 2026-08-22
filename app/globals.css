@@ -1378,39 +1378,10 @@ input[type="range"] {
   gap: 6px;
 }
 
-/* Background editor — a right-docked panel (rather than the shared
-   rail-panel used by the other tabs) matching the reference design tool's
-   "Edit background" panel. Sits below the sticky topbar (top offset ~= its
-   height) but above the floating toolbar and zoom control so it doesn't
-   get overlapped by either while open. */
-.bg-side-panel {
-  position: fixed;
-  top: 64px;
-  right: 64px;
-  bottom: 0;
-  width: 300px;
-  background: var(--paper);
-  border-left: 1px solid var(--line);
-  box-shadow: -8px 0 24px rgba(16, 24, 22, 0.1);
-  padding: 20px;
-  overflow-y: auto;
-  z-index: 32;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.bg-side-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--ink);
-}
-
-/* Color/Pattern tabs — Pattern is always disabled (see BackgroundPanel.tsx
+/* Background editor content — renders inside the shared .editor-rail-panel
+   slot (same as Text/Icons/Templates/Logo), so there's no dedicated wrapper
+   here beyond the tab row / segmented toggle below.
+   Color/Pattern tabs — Pattern is always disabled (see BackgroundPanel.tsx
    comment): shown so the panel reads the same as the reference, not hidden,
    but never clickable. */
 .bg-tab-row {
@@ -1681,9 +1652,7 @@ input[type="range"] {
   justify-content: center;
 }
 
-/* Always-on right-hand page navigator — see PagesPanel.tsx. z-index higher
-   than .bg-side-panel's so the page rail/thumbnails stay usable even if the
-   background editor happens to be open at the same time. */
+/* Always-on right-hand page navigator — see PagesPanel.tsx. */
 .pages-panel {
   position: fixed;
   top: 64px;

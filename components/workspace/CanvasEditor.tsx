@@ -256,7 +256,7 @@ export default function CanvasEditor({
         </button>
       </div>
 
-      {activeTab && activeTab !== "background" && (
+      {activeTab && (
         <div className="editor-rail-panel">
           {activeTab === "text" && (
             <>
@@ -286,26 +286,27 @@ export default function CanvasEditor({
               </button>
             </>
           )}
+          {activeTab === "background" && (
+            <>
+              <p className="wizard-section-label">Background</p>
+              <BackgroundPanel
+                theme={theme}
+                onChange={onThemeChange}
+                brandColors={[
+                  { label: "Primary", color: order.theme?.primaryColor ?? THEME_PRESETS[0].primaryColor },
+                  { label: "Accent", color: order.theme?.accentColor ?? THEME_PRESETS[0].accentColor },
+                ]}
+                gradientPresets={THEME_PRESETS.map((p) => ({
+                  angle: 45,
+                  stops: [
+                    { offset: 0, color: p.primaryColor },
+                    { offset: 100, color: p.accentColor },
+                  ],
+                }))}
+              />
+            </>
+          )}
         </div>
-      )}
-
-      {activeTab === "background" && (
-        <BackgroundPanel
-          theme={theme}
-          onChange={onThemeChange}
-          brandColors={[
-            { label: "Primary", color: order.theme?.primaryColor ?? THEME_PRESETS[0].primaryColor },
-            { label: "Accent", color: order.theme?.accentColor ?? THEME_PRESETS[0].accentColor },
-          ]}
-          gradientPresets={THEME_PRESETS.map((p) => ({
-            angle: 45,
-            stops: [
-              { offset: 0, color: p.primaryColor },
-              { offset: 100, color: p.accentColor },
-            ],
-          }))}
-          onClose={() => setActiveTab(null)}
-        />
       )}
 
       <div className="canvas-stage-col">

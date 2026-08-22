@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { X, Ban, Plus, Trash2 } from "lucide-react";
+import { Ban, Plus, Trash2 } from "lucide-react";
 import { HEX, BackgroundGradient, GradientStop } from "@/lib/canvasLayout";
 import { ThemeEdits } from "./types";
 
@@ -14,7 +14,6 @@ interface Props {
   onChange: (patch: Partial<ThemeEdits>, opts?: ChangeOpts) => void;
   brandColors: { label: string; color: string }[];
   gradientPresets: BackgroundGradient[];
-  onClose: () => void;
 }
 
 const MAX_CUSTOM_COLORS = 12;
@@ -79,14 +78,15 @@ function defaultGradient(seed: string): BackgroundGradient {
   return { angle: 45, stops: [{ offset: 0, color: seed }, { offset: 100, color: "#ffffff" }] };
 }
 
-// A right-docked panel matching the reference design tool's "Edit
-// background" panel: Color/Gradient modes, a project-colors row the
-// customer can add to, the order's own brand colors, a self-contained
+// Renders inside the editor's shared left-rail slide-out panel, same as
+// the Text/Icons/Templates/Logo tabs — matching the reference's "Edit
+// background" panel content: Color/Gradient modes, a project-colors row
+// the customer can add to, the order's own brand colors, a self-contained
 // hue/saturation-value picker for solid colors, and a real angle+stops
 // gradient editor. The "Pattern" tab is shown but disabled — this app's
 // background is always a solid color or a linear gradient end to end
 // (lib/artboard.ts), so a pattern-fill tab would have nothing behind it.
-export default function BackgroundPanel({ theme, onChange, brandColors, gradientPresets, onClose }: Props) {
+export default function BackgroundPanel({ theme, onChange, brandColors, gradientPresets }: Props) {
   const [selectedStop, setSelectedStop] = useState(0);
   const svRef = useRef<HTMLDivElement | null>(null);
   const hueRef = useRef<HTMLDivElement | null>(null);
@@ -177,14 +177,7 @@ export default function BackgroundPanel({ theme, onChange, brandColors, gradient
   }
 
   return (
-    <div className="bg-side-panel">
-      <div className="bg-side-panel-header">
-        <span>Edit background</span>
-        <button type="button" className="icon-btn" title="Close" onClick={onClose}>
-          <X size={16} />
-        </button>
-      </div>
-
+    <>
       <div className="bg-tab-row">
         <button type="button" className="bg-tab active">
           Color
@@ -400,6 +393,6 @@ export default function BackgroundPanel({ theme, onChange, brandColors, gradient
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }
