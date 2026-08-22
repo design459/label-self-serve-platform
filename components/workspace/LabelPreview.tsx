@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { THEME_PRESETS, Theme } from "@/lib/types";
 import { Summary, safeJson } from "./types";
 import LayoutVariantPicker from "./LayoutVariantPicker";
+import LabelStagePreview from "./LabelStagePreview";
 
 interface Props {
   token: string;
@@ -59,6 +60,16 @@ export default function LabelPreview({ token, summary, theme, onThemeChange, onG
         </div>
       </div>
 
+      {order.selectedTemplateId && (
+        <div className="field">
+          <label>Current design</label>
+          <p className="field-hint" style={{ marginTop: 0 }}>
+            Always up to date with your saved edits — free to check anytime, doesn't use a revision.
+          </p>
+          <LabelStagePreview summary={summary} elements={summary.elements} logoUrl={summary.logoUrl} maxWidth={480} />
+        </div>
+      )}
+
       {!hasCustomLayout || showVariantPicker ? (
         <LayoutVariantPicker
           token={token}
@@ -104,10 +115,11 @@ export default function LabelPreview({ token, summary, theme, onThemeChange, onG
       </div>
       {summary.proofUrl && (
         <div style={{ marginTop: 16 }}>
+          <label>Official proof (spends a revision to update)</label>
           <div className="watermark-banner">PROOF — NOT APPROVED FOR PRINT</div>
           <p className="field-hint" style={{ marginTop: 0, marginBottom: 8 }}>
-            This shows your last generated version — if you've edited the label since, click "Generate artwork"
-            again to update it.
+            This is the exact version that gets submitted for staff review — it only updates when you click
+            "Generate artwork," not automatically.
           </p>
           <img
             src={summary.proofUrl}

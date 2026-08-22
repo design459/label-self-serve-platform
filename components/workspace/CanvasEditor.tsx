@@ -21,9 +21,9 @@ import {
 import { FONT_PRESETS } from "@/lib/types";
 import { CanvasElement, IconId, isDeletable } from "@/lib/canvasLayout";
 import { Summary } from "./types";
-import { ICON_COMPONENTS } from "./iconRegistry";
 import IconPicker from "./IconPicker";
 import LayoutVariantPicker from "./LayoutVariantPicker";
+import { ElementPreview } from "./LabelStagePreview";
 
 const STAGE_MAX_WIDTH = 640;
 
@@ -364,124 +364,3 @@ export default function CanvasEditor({
   );
 }
 
-function ElementPreview({ el, scale, summary, logoUrl }: { el: CanvasElement; scale: number; summary: Summary; logoUrl: string | null }) {
-  const { order, regulatory, panel } = summary;
-  const family = (fontId: string, kind: "heading" | "body") => (FONT_PRESETS.find((f) => f.id === fontId) ?? FONT_PRESETS[0])[kind];
-  const px = (mm: number) => Math.max(8, mm * scale * 2.2); // approximate on-screen text size
-
-  switch (el.type) {
-    case "photo":
-      return (
-        <div style={{ width: "100%", height: "100%", background: "#f1efe8", borderRadius: 4, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt=""
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: `${el.imagePosition.x}% ${el.imagePosition.y}%`,
-                transform: `scale(${el.imagePosition.scale})`,
-              }}
-            />
-          ) : (
-            <span className="field-hint">Photo</span>
-          )}
-        </div>
-      );
-    case "icon": {
-      const Icon = ICON_COMPONENTS[el.iconId];
-      return (
-        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: el.color }}>
-          <Icon size="80%" />
-        </div>
-      );
-    }
-    case "productName":
-      return (
-        <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontWeight: 700, fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden" }}>
-          {order.displayName || order.productName || "Product Name"}
-        </p>
-      );
-    case "tagline":
-      return (
-        <p style={{ margin: 0, fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden" }}>
-          {order.marketingTagline || ""}
-        </p>
-      );
-    case "claims":
-      return (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, overflow: "hidden" }}>
-          {(regulatory?.claims || "")
-            .split(",")
-            .filter((c) => c.trim())
-            .map((c, i) => (
-              <span
-                key={i}
-                style={{
-                  fontFamily: family(el.style.fontId, "body"),
-                  fontSize: px(el.style.fontSize) * 0.8,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  padding: "2px 8px",
-                  borderRadius: 12,
-                  background: (el as any).style.badgeColor,
-                  color: el.style.color,
-                }}
-              >
-                {c.trim()}
-              </span>
-            ))}
-        </div>
-      );
-    case "ingredients":
-      return (
-        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", lineHeight: 1.3 }}>
-          <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontWeight: 700 }}>Ingredients</p>
-          <p style={{ margin: 0 }}>{regulatory?.ingredients || "—"}</p>
-        </div>
-      );
-    case "statutoryMarks":
-      return (
-        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", lineHeight: 1.3 }}>
-          <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontWeight: 700 }}>Statutory marks</p>
-          <p style={{ margin: 0 }}>{regulatory?.statutory_marks || "—"}</p>
-        </div>
-      );
-    case "nutritionPanel": {
-      const heading = panel?.panel_style === "supplement_facts" ? "Supplement Facts" : panel?.panel_style === "nutrition_facts" ? "Nutrition Facts" : "";
-      return (
-        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", lineHeight: 1.3 }}>
-          {heading && <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontWeight: 700 }}>{heading}</p>}
-          {(panel?.field_schema ?? []).map((f) => {
-            const v = regulatory?.nutrition_panel?.[f.key];
-            if (!v) return null;
-            return (
-              <div key={f.key} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #e2e5ea" }}>
-                <span>{f.label}</span>
-                <span>{v}</span>
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-    case "footer":
-      return (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize) * 0.85, color: el.style.color, overflow: "hidden", borderTop: "1px solid #e2e5ea", paddingTop: 2 }}>
-          <div>
-            Batch: {regulatory?.batch_code || "—"} SKU: {order.skuCode}
-          </div>
-        </div>
-      );
-    case "text":
-      return (
-        <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden", whiteSpace: "pre-wrap" }}>
-          {el.content}
-        </div>
-      );
-    default:
-      return null;
-  }
-}

@@ -195,10 +195,6 @@ export function buildArtboardHtml(input: ArtboardInput): string {
   const { template, theme, regulatory, font } = input;
   const widthMm = template.trim_width_mm + template.bleed_mm * 2;
   const heightMm = template.trim_height_mm + template.bleed_mm * 2;
-  const bleedPctX = (template.bleed_mm / widthMm) * 100;
-  const bleedPctY = (template.bleed_mm / heightMm) * 100;
-  const safetyPctX = ((template.bleed_mm + template.safety_mm) / widthMm) * 100;
-  const safetyPctY = ((template.bleed_mm + template.safety_mm) / heightMm) * 100;
 
   const ctx: RenderCtx = {
     headingText: esc(input.displayName || input.productName || "Product Name"),
@@ -230,19 +226,6 @@ export function buildArtboardHtml(input: ArtboardInput): string {
     color: #1b2430;
     overflow: hidden;
   }
-  .guide-bleed { position:absolute; inset: 0; border: 0.3mm dashed #cbd5e1; }
-  .guide-safety {
-    position: absolute;
-    left: ${safetyPctX}%; top: ${safetyPctY}%;
-    right: ${safetyPctX}%; bottom: ${safetyPctY}%;
-    border: 0.3mm dotted #94a3b8;
-  }
-  .guide-trim {
-    position: absolute;
-    left: ${bleedPctX}%; top: ${bleedPctY}%;
-    right: ${bleedPctX}%; bottom: ${bleedPctY}%;
-    border: 0.3mm solid #94a3b8;
-  }
   .watermark {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     pointer-events: none; z-index: 5;
@@ -256,10 +239,6 @@ export function buildArtboardHtml(input: ArtboardInput): string {
 </head>
 <body>
   <div class="sheet">
-    <div class="guide-bleed"></div>
-    <div class="guide-trim"></div>
-    <div class="guide-safety"></div>
-
     ${elementsHtml}
 
     ${input.watermark ? `<div class="watermark"><span>PROOF — NOT APPROVED FOR PRINT</span></div>` : ""}
