@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { Rnd } from "react-rnd";
+import { useMemo, useRef, useState, CSSProperties } from "react";
+import { Rnd, HandleStyles } from "react-rnd";
 import {
   BringToFront,
   SendToBack,
@@ -32,17 +32,44 @@ import { ElementPreview } from "./LabelStagePreview";
 const STAGE_MAX_WIDTH = 640;
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
+// Circular corner handles, shown only on the selected element — everything
+// else about resizing (hit area, cursor) is re-resizable's default; this
+// just overlays a visible blue dot on top of it, matching the reference
+// editor's "selected object" state.
+const HANDLE_BASE: CSSProperties = {
+  width: 10,
+  height: 10,
+  borderRadius: "50%",
+  background: "#fff",
+  border: "2px solid var(--select-blue)",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+};
+const SELECTED_HANDLE_STYLES: HandleStyles = {
+  topLeft: { ...HANDLE_BASE, left: -5, top: -5 },
+  topRight: { ...HANDLE_BASE, right: -5, top: -5 },
+  bottomLeft: { ...HANDLE_BASE, left: -5, bottom: -5 },
+  bottomRight: { ...HANDLE_BASE, right: -5, bottom: -5 },
+};
+
+interface ChangeOpts {
+  // Hints to the undo/redo history in EditorPage.tsx: a coalescing change
+  // (dragging a slider, typing in a text field) shouldn't create a new
+  // undo step per keystroke/pixel — only discrete actions (drag stop, add,
+  // delete, align, ...) should.
+  coalesce?: boolean;
+}
+
 interface Props {
   token: string;
   summary: Summary;
   elements: CanvasElement[];
-  onElementsChange: (els: CanvasElement[]) => void;
+  onElementsChange: (els: CanvasElement[], opts?: ChangeOpts) => void;
   logoUrl: string | null;
   onLogoUploaded: () => void;
   selectedId: string | null;
   onSelectedIdChange: (id: string | null) => void;
   backgroundColor: string;
-  onBackgroundColorChange: (color: string) => void;
+  onBackgroundColorChange: (color: string, opts?: ChangeOpts) => void;
 }
 
 function randomId(): string {
@@ -92,8 +119,11 @@ export default function CanvasEditor({
     setZoom((z) => Math.round(Math.min(2, Math.max(0.4, z + delta)) * 100) / 100);
   }
 
-  function updateElement(id: string, patch: Partial<CanvasElement>) {
-    onElementsChange(elements.map((el) => (el.id === id ? ({ ...el, ...patch } as CanvasElement) : el)));
+  function updateElement(id: string, patch: Partial<CanvasElement>, coalesce = false) {
+    onElementsChange(
+      elements.map((el) => (el.id === id ? ({ ...el, ...patch } as CanvasElement) : el)),
+      { coalesce }
+    );
   }
 
   function bringToFront(id: string) {
@@ -259,7 +289,7 @@ export default function CanvasEditor({
                   value={backgroundColor}
                   onChange={(e) => {
                     const v = e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}`;
-                    onBackgroundColorChange(v); // allow typing mid-hex; invalid values just won't preview correctly until complete
+                    onBackgroundColorChange(v, { coalesce: true }); // allow typing mid-hex; invalid values just won't preview correctly until complete
                   }}
                   maxLength={7}
                 />
@@ -297,7 +327,8 @@ export default function CanvasEditor({
                 bounds="parent"
                 size={size}
                 position={px}
-                style={{ zIndex: i, outline: selectedId === el.id ? "2px solid var(--accent)" : "1px dashed rgba(0,0,0,0.15)" }}
+                style={{ zIndex: i, outline: selectedId === el.id ? "2px solid var(--select-blue)" : "1px dashed rgba(0,0,0,0.15)" }}
+                resizeHandleStyles={selectedId === el.id ? SELECTED_HANDLE_STYLES : undefined}
                 onDragStop={(_e, d) => {
                   updateElement(el.id, { x: (d.x / dispW) * 100, y: (d.y / dispH) * 100 } as Partial<CanvasElement>);
                 }}
@@ -327,7 +358,7 @@ export default function CanvasEditor({
                   type="color"
                   value={selected.color}
                   title="Icon color"
-                  onChange={(e) => updateElement(selected.id, { color: e.target.value } as Partial<CanvasElement>)}
+                  onChange={(e) => updateElement(selected.id, { color: e.target.value } as Partial<CanvasElement>, true)}
                 />
               ) : (
                 <>
@@ -350,14 +381,16 @@ export default function CanvasEditor({
                     title="Font size"
                     style={{ width: 60 }}
                     onChange={(e) =>
-                      updateElement(selected.id, { style: { ...selected.style, fontSize: Number(e.target.value) } } as Partial<CanvasElement>)
+                      updateElement(selected.id, { style: { ...selected.style, fontSize: Number(e.target.value) } } as Partial<CanvasElement>, true)
                     }
                   />
                   <input
                     type="color"
                     value={selected.style.color}
                     title="Text color"
-                    onChange={(e) => updateElement(selected.id, { style: { ...selected.style, color: e.target.value } } as Partial<CanvasElement>)}
+                    onChange={(e) =>
+                      updateElement(selected.id, { style: { ...selected.style, color: e.target.value } } as Partial<CanvasElement>, true)
+                    }
                   />
                   {selected.type === "claims" && (
                     <input
@@ -365,7 +398,11 @@ export default function CanvasEditor({
                       value={(selected as any).style.badgeColor}
                       title="Badge color"
                       onChange={(e) =>
-                        updateElement(selected.id, { style: { ...(selected as any).style, badgeColor: e.target.value } } as Partial<CanvasElement>)
+                        updateElement(
+                          selected.id,
+                          { style: { ...(selected as any).style, badgeColor: e.target.value } } as Partial<CanvasElement>,
+                          true
+                        )
                       }
                     />
                   )}
@@ -441,7 +478,7 @@ export default function CanvasEditor({
                 <textarea
                   value={selected.content}
                   maxLength={300}
-                  onChange={(e) => updateElement(selected.id, { content: e.target.value } as Partial<CanvasElement>)}
+                  onChange={(e) => updateElement(selected.id, { content: e.target.value } as Partial<CanvasElement>, true)}
                 />
               </div>
             )}

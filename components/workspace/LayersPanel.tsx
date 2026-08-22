@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, Image, Shapes, Award, Type, ClipboardList } from "lucide-react";
 import { CanvasElement, describeElement, isDeletable } from "@/lib/canvasLayout";
 
 interface Props {
@@ -9,6 +9,26 @@ interface Props {
   onSelect: (id: string) => void;
   onReorder: (next: CanvasElement[]) => void;
   onDelete: (id: string) => void;
+}
+
+// Small per-row glyph standing in for a real thumbnail — cheap visual
+// grouping cue (photo/icon/claims/text/regulatory) rather than an actual
+// rendered preview of each element.
+function rowIcon(el: CanvasElement) {
+  switch (el.type) {
+    case "photo":
+      return <Image size={13} />;
+    case "icon":
+      return <Shapes size={13} />;
+    case "claims":
+      return <Award size={13} />;
+    case "ingredients":
+    case "statutoryMarks":
+    case "nutritionPanel":
+      return <ClipboardList size={13} />;
+    default:
+      return <Type size={13} />;
+  }
 }
 
 // Front-most element (last in the array — array order IS z-order) is
@@ -40,7 +60,10 @@ export default function LayersPanel({ elements, selectedId, onSelect, onReorder,
       </p>
       {reversed.map(({ el, i }) => (
         <div key={el.id} className={`layer-row ${selectedId === el.id ? "selected" : ""}`} onClick={() => onSelect(el.id)}>
-          <span className="layer-row-label">{describeElement(el)}</span>
+          <span className="layer-row-main">
+            <span className="layer-row-icon">{rowIcon(el)}</span>
+            <span className="layer-row-label">{describeElement(el)}</span>
+          </span>
           <span className="layer-row-actions">
             <button
               type="button"

@@ -19,6 +19,13 @@
   --danger-light: #fbe9e7;
   --warn: #8a6100;
   --warn-light: #fff4d6;
+  /* Selection-state blue, scoped to the canvas editor only (selected
+     element outline/handles, selected layer row, selected icon-picker
+     choice) — kept separate from --accent (brand teal) which stays the
+     editor's chrome/button color, matching how reference design tools use
+     a neutral app chrome with a blue "this is selected" affordance. */
+  --select-blue: #2f6fea;
+  --select-blue-light: #eaf1ff;
   --radius: 14px;
   --font-heading: "Roboto Slab", Georgia, serif;
   --font-body: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -1155,6 +1162,8 @@ input[type="range"] {
   align-items: center;
   gap: 4px;
   padding: 10px 4px;
+  margin: 0 8px;
+  border-radius: 10px;
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.65);
@@ -1206,12 +1215,12 @@ input[type="range"] {
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(4, 43, 36, 0.18);
-  padding: 6px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(16, 24, 22, 0.16);
+  padding: 6px 8px;
   width: max-content;
   max-width: 320px;
   flex-wrap: wrap;
@@ -1276,8 +1285,8 @@ input[type="range"] {
 }
 
 .icon-btn:hover {
-  border-color: var(--accent);
-  background: var(--accent-light);
+  border-color: var(--select-blue);
+  background: var(--select-blue-light);
 }
 
 .icon-btn:disabled {
@@ -1297,8 +1306,8 @@ input[type="range"] {
 }
 
 .icon-btn-choice.selected {
-  border-color: var(--accent);
-  background: var(--accent-light);
+  border-color: var(--select-blue);
+  background: var(--select-blue-light);
 }
 
 .icon-picker-grid {
@@ -1306,7 +1315,10 @@ input[type="range"] {
   gap: 6px;
 }
 
-/* Layers panel — right-hand sibling of the canvas stage. */
+/* Layers panel — right-hand sibling of the canvas stage. Styled as a
+   vertical list of small cards (icon + label) rather than plain text rows,
+   closer to how a design tool's page/layer panel reads, with the same
+   --select-blue affordance used for the on-canvas selection outline. */
 .layers-panel {
   flex: 0 0 220px;
   background: var(--paper);
@@ -1323,8 +1335,10 @@ input[type="range"] {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  border: 1px solid transparent;
   cursor: pointer;
   font-size: 13px;
 }
@@ -1334,10 +1348,37 @@ input[type="range"] {
 }
 
 .layer-row.selected {
-  background: var(--accent-light);
+  background: var(--select-blue-light);
+  border-color: var(--select-blue);
+}
+
+.layer-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.layer-row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.layer-row.selected .layer-row-icon {
+  background: #fff;
+  color: var(--select-blue);
 }
 
 .layer-row-label {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1369,6 +1410,13 @@ input[type="range"] {
   position: sticky;
   top: 0;
   z-index: 5;
+}
+
+.editor-topbar-history {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .editor-topbar-title {
