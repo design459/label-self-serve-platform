@@ -25,7 +25,16 @@ export default function SubmitForReview({ token, summary, onSubmitted }: Props) 
     onSubmitted();
   }
 
-  if (order.status === "submitted") {
+  // A design revision only counts as "under review" once it's been
+  // explicitly submitted — regenerating a fresh proof after submission
+  // creates a new, unsubmitted revision (staff keep seeing the last
+  // submitted one, see app/admin/review/[id]/page.tsx) until the customer
+  // submits it too. So the "waiting" notice only applies when the latest
+  // revision IS the submitted one; otherwise there's a newer draft that
+  // still needs to be submitted.
+  const latestIsSubmitted = summary.latestDesign?.isSubmitted ?? false;
+
+  if (order.status === "submitted" && latestIsSubmitted) {
     return (
       <div className="notice-box">
         <p style={{ margin: "0 0 12px" }}>
@@ -39,15 +48,21 @@ export default function SubmitForReview({ token, summary, onSubmitted }: Props) 
     );
   }
 
-  if (!summary.latestDesign || summary.latestDesign.isSubmitted) return null;
+  if (!summary.latestDesign || latestIsSubmitted) return null;
 
   return (
     <div className="card">
       <h2>6. Submit for compliance approval</h2>
       <p className="field-hint">A reviewer on our side will approve this or return it with reasons.</p>
+      {summary.needsRegeneration && (
+        <div className="notice-box" style={{ marginBottom: 16 }}>
+          You've made design changes since this proof was generated — regenerate artwork above so what you submit
+          matches your latest edits.
+        </div>
+      )}
       {error && <div className="error-box">{error}</div>}
       <button className="btn" disabled={busy} onClick={submit}>
-        {busy ? "Submitting…" : "Submit for review"}
+        {busy ? "Submitting…" : order.status === "submitted" ? "Re-submit for review" : "Submit for review"}
       </button>
     </div>
   );

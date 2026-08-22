@@ -52,6 +52,7 @@ export interface Summary {
   extraPages: CanvasElement[][];
   pageCount: number;
   latestDesign: { id: string; revisionNumber: number; isSubmitted: boolean } | null;
+  needsRegeneration: boolean;
   proofUrl: string | null;
   proofUrls: string[];
   printUrl: string | null;

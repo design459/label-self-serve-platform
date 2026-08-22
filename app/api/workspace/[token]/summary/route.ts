@@ -4,6 +4,7 @@ import { supabaseAdmin, signedUrlFor } from "@/lib/supabaseServer";
 import { buildDefaultLayout, CanvasElement } from "@/lib/canvasLayout";
 import { PackFormatTemplate } from "@/lib/types";
 import { apiCatch } from "@/lib/apiError";
+import { deepEqualJson } from "@/lib/deepEqualJson";
 
 // Without this, Next.js statically caches this GET handler's response in
 // production (it has no cookies()/headers() call to imply per-request
@@ -67,6 +68,19 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
   // app/api/workspace/[token]/layout/route.ts; no re-validation on read).
   const extraPages: CanvasElement[][] = Array.isArray(order.extra_pages) ? order.extra_pages : [];
 
+  // True when the customer has saved layout/theme edits since the latest
+  // generated proof — that proof (and whatever staff would see in review)
+  // no longer matches what "Current design" shows. null canvas_layout/theme
+  // (never customized) is treated as unchanged rather than compared against
+  // whatever default the last generate happened to compute, since nothing
+  // was actually edited in that case.
+  const latestRenderInput = latestDesign?.render_input as { elements?: CanvasElement[] } | null | undefined;
+  const elementsChanged = order.canvas_layout !== null && !deepEqualJson(latestRenderInput?.elements ?? null, order.canvas_layout);
+  const latestExtraPagesElements = Array.isArray(latestDesign?.extra_pages_elements) ? latestDesign.extra_pages_elements : [];
+  const extraPagesChanged = !deepEqualJson(latestExtraPagesElements, extraPages);
+  const themeChanged = order.theme !== null && !deepEqualJson(latestDesign?.theme ?? null, order.theme);
+  const needsRegeneration = Boolean(latestDesign?.proof_storage_path) && (elementsChanged || extraPagesChanged || themeChanged);
+
   return NextResponse.json({
     order: {
       id: order.id,
@@ -97,6 +111,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     latestDesign: latestDesign
       ? { id: latestDesign.id, revisionNumber: latestDesign.revision_number, isSubmitted: latestDesign.is_submitted }
       : null,
+    needsRegeneration,
     proofUrl,
     proofUrls,
     printUrl,

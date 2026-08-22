@@ -26,10 +26,16 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
   const o = order as LabelOrder;
 
   const [{ data: design }, { data: auditRows }, { data: reviews }] = await Promise.all([
+    // is_submitted=true, not just the latest revision — if the customer
+    // regenerated a fresh proof after submitting but hasn't re-submitted
+    // it yet, that draft revision isn't what staff is meant to be
+    // reviewing (see SubmitForReview.tsx: they still need to click
+    // "Submit for review" again for the new one to count).
     db
       .from("label_designs")
       .select("*")
       .eq("label_order_id", o.id)
+      .eq("is_submitted", true)
       .order("revision_number", { ascending: false })
       .limit(1)
       .maybeSingle(),
