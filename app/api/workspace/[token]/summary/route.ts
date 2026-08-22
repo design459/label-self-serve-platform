@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
 
   const db = supabaseAdmin();
 
-  const [{ data: templates }, { data: latestDesign }, { data: latestReview }, { data: logo }, { data: regulatory }, { data: panel }] =
+  const [{ data: templates }, { data: latestDesign }, { data: latestReview }, { data: logo }, { data: regulatory }, { data: panel }, { count: submittedCount }] =
     await Promise.all([
       db.from("pack_format_templates").select("*").eq("pack_format", order.pack_format).eq("is_active", true),
       db
@@ -42,7 +42,14 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
       db.from("label_assets").select("*").eq("label_order_id", order.id).eq("kind", "logo").maybeSingle(),
       db.from("label_regulatory_content").select("*").eq("label_order_id", order.id).maybeSingle(),
       db.from("category_panel_templates").select("*").eq("category", order.category).maybeSingle(),
+      // lg_spend_revision() (the RPC behind "Generate artwork") resets
+      // label_orders.status to 'in_progress' on every single call, even
+      // right after a submission — so order.status alone can't tell the
+      // UI "this order has been submitted before" once the customer
+      // regenerates. Whether any past revision was ever submitted can.
+      db.from("label_designs").select("id", { count: "exact", head: true }).eq("label_order_id", order.id).eq("is_submitted", true),
     ]);
+  const hasSubmittedBefore = (submittedCount ?? 0) > 0;
 
   const logoUrl = logo?.storage_path ? await signedUrlFor(logo.storage_path) : null;
   const proofUrl = latestDesign?.proof_storage_path ? await signedUrlFor(latestDesign.proof_storage_path) : null;
@@ -112,6 +119,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
       ? { id: latestDesign.id, revisionNumber: latestDesign.revision_number, isSubmitted: latestDesign.is_submitted }
       : null,
     needsRegeneration,
+    hasSubmittedBefore,
     proofUrl,
     proofUrls,
     printUrl,

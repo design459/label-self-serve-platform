@@ -69,7 +69,7 @@ export default function SubmitForReview({ token, summary, onSubmitted }: Props) 
       )}
       {error && <div className="error-box">{error}</div>}
       <button className="btn" disabled={busy} onClick={submit}>
-        {busy ? "Submitting…" : order.status === "submitted" ? "Re-submit for review" : "Submit for review"}
+        {busy ? "Submitting…" : summary.hasSubmittedBefore ? "Re-submit for review" : "Submit for review"}
       </button>
     </div>
   );

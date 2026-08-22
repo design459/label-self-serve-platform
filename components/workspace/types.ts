@@ -53,6 +53,7 @@ export interface Summary {
   pageCount: number;
   latestDesign: { id: string; revisionNumber: number; isSubmitted: boolean } | null;
   needsRegeneration: boolean;
+  hasSubmittedBefore: boolean;
   proofUrl: string | null;
   proofUrls: string[];
   printUrl: string | null;
