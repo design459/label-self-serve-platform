@@ -100,7 +100,7 @@ export default function WorkspaceApp({ token }: { token: string }) {
     <PhotoAndPaletteEditor key="photo" token={token} summary={summary} locked={locked} onSaved={load} />,
     <MarketingCopyEditor key="marketing" token={token} summary={summary} locked={locked} onSaved={load} />,
     <CategoryPanelEditor key="regulatory" token={token} summary={summary} locked={locked} onSaved={load} />,
-    <LabelPreview key="design" token={token} summary={summary} theme={theme} onThemeChange={setTheme} onGenerated={load} />,
+    <LabelPreview key="design" token={token} summary={summary} theme={theme} onGenerated={load} />,
     <SubmitForReview key="submit" token={token} summary={summary} onSubmitted={load} />,
   ];
 

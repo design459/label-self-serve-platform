@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { THEME_PRESETS, Theme } from "@/lib/types";
+import { Theme } from "@/lib/types";
 import { Summary, safeJson } from "./types";
 import LayoutVariantPicker from "./LayoutVariantPicker";
 import LabelStagePreview from "./LabelStagePreview";
@@ -11,11 +11,10 @@ interface Props {
   token: string;
   summary: Summary;
   theme: Theme;
-  onThemeChange: (t: Theme) => void;
   onGenerated: () => void;
 }
 
-export default function LabelPreview({ token, summary, theme, onThemeChange, onGenerated }: Props) {
+export default function LabelPreview({ token, summary, theme, onGenerated }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,21 +44,6 @@ export default function LabelPreview({ token, summary, theme, onThemeChange, onG
         Drag, resize, and restyle anything — your photo, brand name, tagline, and the regulatory panel too. Nothing
         prints until staff review it.
       </p>
-      <div className="field">
-        <label>Label background</label>
-        <div className="palette-row">
-          {THEME_PRESETS.map((preset, i) => (
-            <div
-              key={i}
-              className={`swatch ${theme.backgroundColor === preset.backgroundColor ? "selected" : ""}`}
-              style={{ background: preset.backgroundColor, boxShadow: "inset 0 0 0 1px var(--line)" }}
-              onClick={() => onThemeChange(preset)}
-              title={preset.backgroundColor}
-            />
-          ))}
-        </div>
-      </div>
-
       {order.selectedTemplateId && (
         <div className="field">
           <label>Current design</label>
