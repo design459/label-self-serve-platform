@@ -105,10 +105,14 @@ export default function LabelPreview({ token, summary, theme, onThemeChange, onG
       {summary.proofUrl && (
         <div style={{ marginTop: 16 }}>
           <div className="watermark-banner">PROOF — NOT APPROVED FOR PRINT</div>
-          <iframe
+          <p className="field-hint" style={{ marginTop: 0, marginBottom: 8 }}>
+            This shows your last generated version — if you've edited the label since, click "Generate artwork"
+            again to update it.
+          </p>
+          <img
             src={summary.proofUrl}
-            title="Label proof"
-            style={{ width: "100%", height: 500, border: "1px solid var(--line)", borderRadius: 8 }}
+            alt="Label proof"
+            style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, display: "block" }}
           />
         </div>
       )}

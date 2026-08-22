@@ -104,17 +104,31 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
 
     const html = buildArtboardHtml({ ...renderInput, watermark: true });
 
-    let pdfBuffer: Buffer;
+    // The in-app "proof" is a PNG, not a PDF — it's only ever viewed on
+    // screen (during editing and by staff during review), never sent to a
+    // printer, so an image displays far more predictably in the browser
+    // than embedding a PDF viewer. The actual print-ready file (produced
+    // only on staff approval, app/api/admin/review/[id]/route.ts) stays a
+    // PDF, since that one IS the print production deliverable.
+    let pngBuffer: Buffer;
     try {
       const browser = await launchBrowser();
       try {
         const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: "networkidle0" });
         const widthMm = template.trim_width_mm + template.bleed_mm * 2;
         const heightMm = template.trim_height_mm + template.bleed_mm * 2;
-        pdfBuffer = Buffer.from(
-          await page.pdf({ width: `${widthMm}mm`, height: `${heightMm}mm`, printBackground: true })
-        );
+        // deviceScaleFactor gives a sharper capture without changing the
+        // mm-based CSS layout math (viewport must be large enough to
+        // contain the full .sheet before deviceScaleFactor multiplies it).
+        await page.setViewport({
+          width: Math.ceil(widthMm * 4) + 40,
+          height: Math.ceil(heightMm * 4) + 40,
+          deviceScaleFactor: 2,
+        });
+        await page.setContent(html, { waitUntil: "networkidle0" });
+        const sheet = await page.$(".sheet");
+        if (!sheet) throw new Error("Rendered sheet element not found.");
+        pngBuffer = Buffer.from(await sheet.screenshot({ type: "png" }));
       } finally {
         await browser.close();
       }
@@ -125,9 +139,9 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       );
     }
 
-    const proofPath = `orders/${order.id}/designs/${newDesign.id}/proof.pdf`;
-    const { error: uploadError } = await db.storage.from(storageBucket()).upload(proofPath, pdfBuffer, {
-      contentType: "application/pdf",
+    const proofPath = `orders/${order.id}/designs/${newDesign.id}/proof.png`;
+    const { error: uploadError } = await db.storage.from(storageBucket()).upload(proofPath, pngBuffer, {
+      contentType: "image/png",
       upsert: true,
     });
     if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });

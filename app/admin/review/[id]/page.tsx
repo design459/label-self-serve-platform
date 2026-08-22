@@ -54,7 +54,7 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
             Revision {design?.revision_number ?? "—"} of {o.revision_limit} used ({o.revisions_used} used total).
           </p>
           {proofUrl ? (
-            <iframe src={proofUrl} title="Label proof" style={{ width: "100%", height: 500, border: "1px solid var(--line)", borderRadius: 8 }} />
+            <img src={proofUrl} alt="Label proof" style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, display: "block" }} />
           ) : (
             <p>No proof has been generated yet.</p>
           )}
