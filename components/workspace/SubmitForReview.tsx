@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Summary, safeJson } from "./types";
 
 interface Props {
@@ -27,8 +28,13 @@ export default function SubmitForReview({ token, summary, onSubmitted }: Props) 
   if (order.status === "submitted") {
     return (
       <div className="notice-box">
-        Submitted — waiting on compliance review. You can still regenerate if you spot something, which will need
-        re-submitting.
+        <p style={{ margin: "0 0 12px" }}>
+          Submitted — waiting on compliance review. You can still regenerate if you spot something, which will need
+          re-submitting.
+        </p>
+        <Link className="btn btn-outline" href="/">
+          Back to home
+        </Link>
       </div>
     );
   }
