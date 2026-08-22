@@ -26,6 +26,10 @@
      a neutral app chrome with a blue "this is selected" affordance. */
   --select-blue: #2f6fea;
   --select-blue-light: #eaf1ff;
+  /* Neutral light gray used only by the full-page label editor's own
+     chrome (rail hover, workspace background) — distinct from the app's
+     brand-matched cream --bg used everywhere else. */
+  --editor-bg: #eef0f3;
   --radius: 14px;
   --font-heading: "Roboto Slab", Georgia, serif;
   --font-body: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -1149,7 +1153,8 @@ input[type="range"] {
 .editor-rail-tabs {
   display: flex;
   flex-direction: column;
-  background: var(--accent-dark);
+  background: var(--paper);
+  border: 1px solid var(--line);
   border-radius: var(--radius) 0 0 var(--radius);
   padding: 10px 0;
   flex-shrink: 0;
@@ -1166,20 +1171,20 @@ input[type="range"] {
   border-radius: 10px;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--muted);
   cursor: pointer;
   font-size: 11px;
   font-family: var(--font-body);
 }
 
 .editor-rail-tab:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  background: var(--editor-bg);
 }
 
 .editor-rail-tab.active {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.15);
+  color: var(--select-blue);
+  background: var(--select-blue-light);
 }
 
 .editor-rail-panel {
@@ -1344,7 +1349,7 @@ input[type="range"] {
 }
 
 .layer-row:hover {
-  background: var(--bg);
+  background: var(--editor-bg);
 }
 
 .layer-row.selected {
@@ -1368,7 +1373,7 @@ input[type="range"] {
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: var(--bg);
+  background: var(--editor-bg);
   color: var(--muted);
 }
 
@@ -1395,7 +1400,10 @@ input[type="range"] {
    editing). */
 .editor-page {
   min-height: 100vh;
-  background: var(--bg);
+  /* Neutral light gray, not the app's warm cream --bg — the editor reads as
+     a dedicated design-tool workspace (matching the reference), while the
+     rest of the app keeps the brand-matched cream background. */
+  background: var(--editor-bg);
   display: flex;
   flex-direction: column;
 }
