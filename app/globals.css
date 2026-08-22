@@ -1642,7 +1642,11 @@ input[type="range"] {
 .editor-body {
   flex: 1;
   padding: 24px;
-  padding-left: 96px;
+  /* Equal left/right reserve (matching the wider right side's actual
+     chrome: the always-on page rail + thumbnails) so the centered canvas
+     lands on the viewport's true center instead of drifting left toward
+     the narrower left rail's reserve. */
+  padding-left: 250px;
   padding-right: 250px;
   overflow-x: auto;
 }
