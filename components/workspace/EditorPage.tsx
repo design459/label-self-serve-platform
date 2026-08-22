@@ -316,7 +316,9 @@ export default function EditorPage({ token }: { token: string }) {
       </div>
 
       <PagesPanel
-        pageCount={pages.length}
+        pages={pages}
+        summary={summary}
+        logoUrl={logoUrl}
         activePageIndex={activePageIndex}
         maxPages={MAX_LABEL_PAGES}
         onGoTo={goToPage}

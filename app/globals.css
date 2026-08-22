@@ -1310,7 +1310,7 @@ input[type="range"] {
 .zoom-control {
   position: fixed;
   bottom: 20px;
-  right: 84px;
+  right: 244px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1664,7 +1664,7 @@ input[type="range"] {
 .editor-body {
   flex: 1;
   padding: 24px;
-  padding-right: 88px;
+  padding-right: 250px;
   overflow-x: auto;
 }
 
@@ -1673,9 +1673,9 @@ input[type="range"] {
   justify-content: center;
 }
 
-/* Always-on right-hand page navigator — see PagesPanel.tsx. Positioned
-   further right than .bg-side-panel (which stops at right:64px) so the two
-   never overlap when the background editor is also open. */
+/* Always-on right-hand page navigator — see PagesPanel.tsx. z-index higher
+   than .bg-side-panel's so the page rail/thumbnails stay usable even if the
+   background editor happens to be open at the same time. */
 .pages-panel {
   position: fixed;
   top: 64px;
@@ -1689,8 +1689,56 @@ input[type="range"] {
   align-items: center;
   padding: 12px 0;
   gap: 10px;
-  z-index: 10;
+  z-index: 33;
   overflow-y: auto;
+}
+
+/* Page thumbnails — live small renders of each page (via
+   LabelStagePreview), docked immediately left of the rail. Only mounted
+   while the rail isn't collapsed. */
+.pages-thumbs {
+  position: fixed;
+  top: 64px;
+  right: 64px;
+  bottom: 0;
+  width: 160px;
+  background: var(--editor-bg);
+  border-left: 1px solid var(--line);
+  padding: 16px 12px;
+  overflow-y: auto;
+  z-index: 33;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pages-thumb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.pages-thumb-index {
+  width: 14px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.pages-thumb-card {
+  flex: 1;
+  min-width: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  box-shadow: var(--shadow-card);
+  background: #fff;
+}
+
+.pages-thumb-card.selected {
+  border-color: var(--select-blue);
 }
 
 .pages-stepper {
