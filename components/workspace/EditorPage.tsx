@@ -7,7 +7,6 @@ import { CanvasElement } from "@/lib/canvasLayout";
 import { THEME_PRESETS } from "@/lib/types";
 import { Summary, safeJson } from "./types";
 import CanvasEditor from "./CanvasEditor";
-import LayersPanel from "./LayersPanel";
 
 interface Snapshot {
   elements: CanvasElement[];
@@ -227,16 +226,6 @@ export default function EditorPage({ token }: { token: string }) {
             onSelectedIdChange={setSelectedId}
             backgroundColor={backgroundColor}
             onBackgroundColorChange={setBackgroundColor}
-          />
-          <LayersPanel
-            elements={elements}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onReorder={setElements}
-            onDelete={(id) => {
-              setElements(elements.filter((e) => e.id !== id));
-              setSelectedId(null);
-            }}
           />
         </div>
       </div>
