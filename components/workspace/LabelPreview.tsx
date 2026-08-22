@@ -113,21 +113,6 @@ export default function LabelPreview({ token, summary, theme, onThemeChange, onG
           {busy ? "Generating…" : "Generate artwork"}
         </button>
       </div>
-      {summary.proofUrl && (
-        <div style={{ marginTop: 16 }}>
-          <label>Official proof (spends a revision to update)</label>
-          <div className="watermark-banner">PROOF — NOT APPROVED FOR PRINT</div>
-          <p className="field-hint" style={{ marginTop: 0, marginBottom: 8 }}>
-            This is the exact version that gets submitted for staff review — it only updates when you click
-            "Generate artwork," not automatically.
-          </p>
-          <img
-            src={summary.proofUrl}
-            alt="Label proof"
-            style={{ width: "100%", border: "1px solid var(--line)", borderRadius: 8, display: "block" }}
-          />
-        </div>
-      )}
     </div>
   );
 }
