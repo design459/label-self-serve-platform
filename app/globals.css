@@ -1213,29 +1213,79 @@ input[type="range"] {
   overflow: visible;
 }
 
-/* Contextual toolbar that floats right above (or below, near the top edge)
-   the selected element, instead of a fixed panel under the canvas. */
-.floating-toolbar {
-  position: absolute;
-  z-index: 20;
+/* Contextual toolbar docked full-width above the canvas (matching the
+   selected-object toolbar in the reference design tool) instead of a
+   popup anchored to the selected element's on-canvas position. */
+.canvas-toolbar {
+  position: relative;
+  z-index: 15;
   display: flex;
   align-items: center;
   gap: 6px;
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(16, 24, 22, 0.16);
-  padding: 6px 8px;
-  width: max-content;
-  max-width: 320px;
-  flex-wrap: wrap;
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+  padding: 6px 10px;
+  margin: 0 auto 10px;
+  overflow-x: auto;
 }
 
-.floating-toolbar select,
-.floating-toolbar input[type="color"] {
+.canvas-toolbar select,
+.canvas-toolbar input[type="color"] {
   width: auto;
   padding: 4px 6px;
   font-size: 12px;
+  flex-shrink: 0;
+}
+
+.canvas-toolbar-text-btn {
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.canvas-toolbar-text-btn:hover {
+  color: var(--select-blue);
+}
+
+.canvas-toolbar-dropdown-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.canvas-toolbar-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  gap: 4px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(16, 24, 22, 0.16);
+  padding: 6px;
+  width: max-content;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.stepper span {
+  min-width: 24px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .element-content-editor {

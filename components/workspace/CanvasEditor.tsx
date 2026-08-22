@@ -95,6 +95,8 @@ export default function CanvasEditor({
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"text" | "icons" | "templates" | "photo" | "background" | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [alignMenuOpen, setAlignMenuOpen] = useState(false);
+  const [layersMenuOpen, setLayersMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { widthMm, heightMm, scale, stageW, stageH } = useMemo(() => {
@@ -130,12 +132,14 @@ export default function CanvasEditor({
     const el = elements.find((e) => e.id === id);
     if (!el) return;
     onElementsChange([...elements.filter((e) => e.id !== id), el]);
+    setLayersMenuOpen(false);
   }
 
   function sendToBack(id: string) {
     const el = elements.find((e) => e.id === id);
     if (!el) return;
     onElementsChange([el, ...elements.filter((e) => e.id !== id)]);
+    setLayersMenuOpen(false);
   }
 
   function deleteElement(id: string) {
@@ -192,6 +196,7 @@ export default function CanvasEditor({
         ? { y: 50 - el.h / 2 }
         : { y: 100 - el.h };
     updateElement(id, patch);
+    setAlignMenuOpen(false);
   }
 
   async function uploadPhoto(file: File) {
@@ -204,21 +209,6 @@ export default function CanvasEditor({
   }
 
   const selected = elements.find((e) => e.id === selectedId) ?? null;
-
-  // Where to float the contextual toolbar: right above the selected
-  // element, flipping to below it when there isn't room above (near the
-  // top edge of the stage).
-  const selRect = selected
-    ? {
-        x: (selected.x / 100) * dispW,
-        y: (selected.y / 100) * dispH,
-        w: (selected.w / 100) * dispW,
-        h: (selected.h / 100) * dispH,
-      }
-    : null;
-  const TOOLBAR_H = 40;
-  const toolbarTop = selRect ? (selRect.y - TOOLBAR_H - 8 < 0 ? selRect.y + selRect.h + 8 : selRect.y - TOOLBAR_H - 8) : 0;
-  const toolbarLeft = selRect ? Math.max(0, Math.min(selRect.x, dispW - 260)) : 0;
 
   function toggleTab(tab: "text" | "icons" | "templates" | "photo" | "background") {
     setActiveTab((cur) => (cur === tab ? null : tab));
@@ -302,6 +292,155 @@ export default function CanvasEditor({
       )}
 
       <div className="canvas-stage-col">
+        {selected && (
+          <div className="canvas-toolbar" style={{ width: dispW }}>
+            {selected.type === "photo" ? (
+              <button type="button" className="icon-btn" title="Replace logo" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+                <ImageUp size={16} />
+              </button>
+            ) : selected.type === "icon" ? (
+              <input
+                type="color"
+                value={selected.color}
+                title="Icon color"
+                onChange={(e) => updateElement(selected.id, { color: e.target.value } as Partial<CanvasElement>, true)}
+              />
+            ) : (
+              <>
+                <select
+                  value={selected.style.fontId}
+                  onChange={(e) => updateElement(selected.id, { style: { ...selected.style, fontId: e.target.value } } as Partial<CanvasElement>)}
+                >
+                  {FONT_PRESETS.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+
+                <span className="toolbar-divider" />
+
+                <div className="stepper">
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    title="Smaller"
+                    onClick={() => updateElement(selected.id, { style: { ...selected.style, fontSize: Math.max(1.5, selected.style.fontSize - 0.5) } } as Partial<CanvasElement>)}
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span>{selected.style.fontSize}</span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    title="Larger"
+                    onClick={() => updateElement(selected.id, { style: { ...selected.style, fontSize: Math.min(12, selected.style.fontSize + 0.5) } } as Partial<CanvasElement>)}
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+
+                <span className="toolbar-divider" />
+
+                <input
+                  type="color"
+                  value={selected.style.color}
+                  title="Text color"
+                  onChange={(e) =>
+                    updateElement(selected.id, { style: { ...selected.style, color: e.target.value } } as Partial<CanvasElement>, true)
+                  }
+                />
+                {selected.type === "claims" && (
+                  <input
+                    type="color"
+                    value={(selected as any).style.badgeColor}
+                    title="Badge color"
+                    onChange={(e) =>
+                      updateElement(
+                        selected.id,
+                        { style: { ...(selected as any).style, badgeColor: e.target.value } } as Partial<CanvasElement>,
+                        true
+                      )
+                    }
+                  />
+                )}
+              </>
+            )}
+
+            <span className="toolbar-divider" />
+
+            <div className="canvas-toolbar-dropdown-wrap">
+              <button
+                type="button"
+                className="canvas-toolbar-text-btn"
+                onClick={() => {
+                  setAlignMenuOpen((o) => !o);
+                  setLayersMenuOpen(false);
+                }}
+              >
+                Align
+              </button>
+              {alignMenuOpen && (
+                <div className="canvas-toolbar-dropdown">
+                  <button type="button" className="icon-btn" title="Align left" onClick={() => alignElement(selected.id, "left")}>
+                    <AlignHorizontalJustifyStart size={14} />
+                  </button>
+                  <button type="button" className="icon-btn" title="Align center" onClick={() => alignElement(selected.id, "centerH")}>
+                    <AlignHorizontalJustifyCenter size={14} />
+                  </button>
+                  <button type="button" className="icon-btn" title="Align right" onClick={() => alignElement(selected.id, "right")}>
+                    <AlignHorizontalJustifyEnd size={14} />
+                  </button>
+                  <button type="button" className="icon-btn" title="Align top" onClick={() => alignElement(selected.id, "top")}>
+                    <AlignVerticalJustifyStart size={14} />
+                  </button>
+                  <button type="button" className="icon-btn" title="Align middle" onClick={() => alignElement(selected.id, "centerV")}>
+                    <AlignVerticalJustifyCenter size={14} />
+                  </button>
+                  <button type="button" className="icon-btn" title="Align bottom" onClick={() => alignElement(selected.id, "bottom")}>
+                    <AlignVerticalJustifyEnd size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="canvas-toolbar-dropdown-wrap">
+              <button
+                type="button"
+                className="canvas-toolbar-text-btn"
+                onClick={() => {
+                  setLayersMenuOpen((o) => !o);
+                  setAlignMenuOpen(false);
+                }}
+              >
+                Layers
+              </button>
+              {layersMenuOpen && (
+                <div className="canvas-toolbar-dropdown">
+                  <button type="button" className="icon-btn" title="Bring to front" onClick={() => bringToFront(selected.id)}>
+                    <BringToFront size={14} />
+                  </button>
+                  <button type="button" className="icon-btn" title="Send to back" onClick={() => sendToBack(selected.id)}>
+                    <SendToBack size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {isDeletable(selected) && (
+              <>
+                <span className="toolbar-divider" />
+                <button type="button" className="icon-btn" title="Duplicate" onClick={() => duplicateElement(selected.id)}>
+                  <Copy size={14} />
+                </button>
+                <button type="button" className="icon-btn icon-btn-danger" title="Delete" onClick={() => deleteElement(selected.id)}>
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         <div
           className="canvas-stage"
           style={{ width: dispW, height: dispH, background: backgroundCss(theme) }}
@@ -337,110 +476,6 @@ export default function CanvasEditor({
               </Rnd>
             );
           })}
-
-          {selected && selRect && (
-            <div className="floating-toolbar" style={{ top: toolbarTop, left: toolbarLeft }}>
-              {selected.type === "photo" ? (
-                <button type="button" className="icon-btn" title="Replace logo" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-                  <ImageUp size={16} />
-                </button>
-              ) : selected.type === "icon" ? (
-                <input
-                  type="color"
-                  value={selected.color}
-                  title="Icon color"
-                  onChange={(e) => updateElement(selected.id, { color: e.target.value } as Partial<CanvasElement>, true)}
-                />
-              ) : (
-                <>
-                  <select
-                    value={selected.style.fontId}
-                    onChange={(e) => updateElement(selected.id, { style: { ...selected.style, fontId: e.target.value } } as Partial<CanvasElement>)}
-                  >
-                    {FONT_PRESETS.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="range"
-                    min={1.5}
-                    max={12}
-                    step={0.5}
-                    value={selected.style.fontSize}
-                    title="Font size"
-                    style={{ width: 60 }}
-                    onChange={(e) =>
-                      updateElement(selected.id, { style: { ...selected.style, fontSize: Number(e.target.value) } } as Partial<CanvasElement>, true)
-                    }
-                  />
-                  <input
-                    type="color"
-                    value={selected.style.color}
-                    title="Text color"
-                    onChange={(e) =>
-                      updateElement(selected.id, { style: { ...selected.style, color: e.target.value } } as Partial<CanvasElement>, true)
-                    }
-                  />
-                  {selected.type === "claims" && (
-                    <input
-                      type="color"
-                      value={(selected as any).style.badgeColor}
-                      title="Badge color"
-                      onChange={(e) =>
-                        updateElement(
-                          selected.id,
-                          { style: { ...(selected as any).style, badgeColor: e.target.value } } as Partial<CanvasElement>,
-                          true
-                        )
-                      }
-                    />
-                  )}
-                </>
-              )}
-
-              <span className="toolbar-divider" />
-
-              <button type="button" className="icon-btn" title="Align left" onClick={() => alignElement(selected.id, "left")}>
-                <AlignHorizontalJustifyStart size={14} />
-              </button>
-              <button type="button" className="icon-btn" title="Align center" onClick={() => alignElement(selected.id, "centerH")}>
-                <AlignHorizontalJustifyCenter size={14} />
-              </button>
-              <button type="button" className="icon-btn" title="Align right" onClick={() => alignElement(selected.id, "right")}>
-                <AlignHorizontalJustifyEnd size={14} />
-              </button>
-              <button type="button" className="icon-btn" title="Align top" onClick={() => alignElement(selected.id, "top")}>
-                <AlignVerticalJustifyStart size={14} />
-              </button>
-              <button type="button" className="icon-btn" title="Align middle" onClick={() => alignElement(selected.id, "centerV")}>
-                <AlignVerticalJustifyCenter size={14} />
-              </button>
-              <button type="button" className="icon-btn" title="Align bottom" onClick={() => alignElement(selected.id, "bottom")}>
-                <AlignVerticalJustifyEnd size={14} />
-              </button>
-
-              <span className="toolbar-divider" />
-
-              <button type="button" className="icon-btn" title="Bring to front" onClick={() => bringToFront(selected.id)}>
-                <BringToFront size={14} />
-              </button>
-              <button type="button" className="icon-btn" title="Send to back" onClick={() => sendToBack(selected.id)}>
-                <SendToBack size={14} />
-              </button>
-              {isDeletable(selected) && (
-                <>
-                  <button type="button" className="icon-btn" title="Duplicate" onClick={() => duplicateElement(selected.id)}>
-                    <Copy size={14} />
-                  </button>
-                  <button type="button" className="icon-btn icon-btn-danger" title="Delete" onClick={() => deleteElement(selected.id)}>
-                    <Trash2 size={14} />
-                  </button>
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="zoom-control">
