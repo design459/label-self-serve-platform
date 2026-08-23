@@ -148,6 +148,7 @@ export interface ImagePosition {
 export interface LabelOrder {
   id: string;
   customer_name: string;
+  company_name: string | null;
   customer_email: string;
   sku_code: string;
   product_name: string;

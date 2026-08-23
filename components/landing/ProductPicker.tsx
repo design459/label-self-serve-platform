@@ -13,6 +13,7 @@ export default function ProductPicker() {
   const [selection, setSelection] = useState<Selection>(null);
   const [customName, setCustomName] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [renderedAt] = useState(() => Date.now());
@@ -38,9 +39,10 @@ export default function ProductPicker() {
 
     const body =
       selection.kind === "catalog"
-        ? { customerName, customerEmail, catalogProductId: selection.product.id, honeypot, renderedAt }
+        ? { customerName, companyName, customerEmail, catalogProductId: selection.product.id, honeypot, renderedAt }
         : {
             customerName,
+            companyName,
             customerEmail,
             customProductName: customName,
             category: selection.category.category,
@@ -113,9 +115,20 @@ export default function ProductPicker() {
       </section>
 
       {selection && (
-        <section className="landing-section">
-          <div className="card" style={{ maxWidth: 480 }}>
-            <h2>Start your label</h2>
+        <div className="modal-overlay" onClick={() => !busy && setSelection(null)}>
+          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Start your label</h2>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setSelection(null)}
+                disabled={busy}
+                aria-label="Close"
+              >
+                Close
+              </button>
+            </div>
             <form onSubmit={onSubmit}>
               {error && <div className="error-box">{error}</div>}
               {selection.kind === "category" && (
@@ -133,6 +146,10 @@ export default function ProductPicker() {
               <div className="field">
                 <label>Your name</label>
                 <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
+              </div>
+              <div className="field">
+                <label>Your company name</label>
+                <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
               </div>
               <div className="field">
                 <label>Your email</label>
@@ -160,7 +177,7 @@ export default function ProductPicker() {
               </button>
             </form>
           </div>
-        </section>
+        </div>
       )}
     </>
   );

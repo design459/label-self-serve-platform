@@ -56,6 +56,7 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
       <div className="page">
         <h1>{o.customer_name}</h1>
         <p className="subtitle">
+          {o.company_name ? `${o.company_name} · ` : ""}
           SKU {o.sku_code} · {o.pack_format} · <span className={`pill pill-${o.status}`}>{o.status}</span>
         </p>
 

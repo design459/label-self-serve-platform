@@ -30,11 +30,11 @@ export default function HomePage() {
           </a>
         </div>
       </div>
-      <HowItWorks />
-      <FeatureHighlights />
       <div id="products">
         <ProductPicker />
       </div>
+      <HowItWorks />
+      <FeatureHighlights />
     </>
   );
 }

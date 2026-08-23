@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
 
-    const { customerName, customerEmail, catalogProductId, customProductName, category, packFormat, honeypot, renderedAt } = body;
+    const { customerName, companyName, customerEmail, catalogProductId, customProductName, category, packFormat, honeypot, renderedAt } = body;
 
     // Silent no-ops, not errors — never tip off a bot that it was caught.
     if (typeof honeypot === "string" && honeypot.trim() !== "") {
@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ accessToken: null });
     }
 
-    if (!customerName || !customerEmail) {
-      return NextResponse.json({ error: "Your name and email are required." }, { status: 400 });
+    if (!customerName || !customerEmail || !companyName) {
+      return NextResponse.json({ error: "Your name, company name and email are required." }, { status: 400 });
     }
 
     const db = supabaseAdmin();
@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
       .from("label_orders")
       .insert({
         customer_name: customerName,
+        company_name: companyName,
         customer_email: customerEmail,
         sku_code: skuCode,
         product_name: productName,
