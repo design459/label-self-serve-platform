@@ -1,17 +1,10 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { safeCurrentStaff } from "@/lib/supabaseAuth";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 import AdminNav from "@/components/admin/AdminNav";
 import ConfigNotice from "@/components/admin/ConfigNotice";
+import ReviewQueueTables from "@/components/admin/ReviewQueueTables";
 import { LabelOrder } from "@/lib/types";
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-}
 
 export default async function ReviewQueuePage() {
   const { staff, configError } = await safeCurrentStaff();
@@ -63,87 +56,7 @@ export default async function ReviewQueuePage() {
           </div>
         </div>
 
-        <h2 className="section-heading">
-          <span className="section-dot section-dot-warn" /> Awaiting review ({submitted.length})
-        </h2>
-        <div className="card">
-          {submitted.length === 0 ? (
-            <p className="subtitle" style={{ margin: 0 }}>
-              Nothing waiting right now.
-            </p>
-          ) : (
-            <table className="review-table">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>SKU</th>
-                  <th>Pack format</th>
-                  <th>Revisions</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {submitted.map((o) => (
-                  <tr key={o.id}>
-                    <td>
-                      <span className="row-avatar">{initials(o.customer_name)}</span>
-                      {o.customer_name}
-                    </td>
-                    <td>{o.sku_code}</td>
-                    <td>{o.pack_format}</td>
-                    <td>
-                      {o.revisions_used} / {o.revision_limit}
-                    </td>
-                    <td>
-                      <Link className="btn" href={`/admin/review/${o.id}`} style={{ padding: "6px 12px" }}>
-                        Review
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        <h2 className="section-heading">
-          <span className="section-dot section-dot-ok" /> Recently decided ({others.length})
-        </h2>
-        <div className="card">
-          {others.length === 0 ? (
-            <p className="subtitle" style={{ margin: 0 }}>
-              Nothing decided yet.
-            </p>
-          ) : (
-            <table className="review-table">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>SKU</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {others.map((o) => (
-                  <tr key={o.id}>
-                    <td>
-                      <span className="row-avatar">{initials(o.customer_name)}</span>
-                      {o.customer_name}
-                    </td>
-                    <td>{o.sku_code}</td>
-                    <td>
-                      <span className={`pill pill-${o.status}`}>{o.status}</span>
-                    </td>
-                    <td>
-                      <Link href={`/admin/review/${o.id}`}>View</Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <ReviewQueueTables submitted={submitted} others={others} />
       </div>
     </div>
   );

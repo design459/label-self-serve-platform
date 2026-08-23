@@ -160,3 +160,26 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return apiCatch(err);
   }
 }
+
+// Staff-only, permanent delete from the review queue — cascades to
+// label_designs/label_regulatory_content/label_assets/compliance_reviews/
+// lg_audit_log the same way as supabase/scripts/reset_all_orders.sql.
+// No logAudit call here: lg_audit_log.label_order_id cascades away with the
+// order itself, so an audit row for this action couldn't outlive it anyway.
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const staff = await currentStaff();
+    if (!staff) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+    const db = supabaseAdmin();
+    const { data: order } = await db.from("label_orders").select("id").eq("id", params.id).maybeSingle();
+    if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
+
+    const { error } = await db.from("label_orders").delete().eq("id", params.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return apiCatch(err);
+  }
+}
