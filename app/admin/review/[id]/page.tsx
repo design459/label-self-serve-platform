@@ -25,7 +25,7 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
   }
   const o = order as LabelOrder;
 
-  const [{ data: design }, { data: auditRows }, { data: reviews }] = await Promise.all([
+  const [{ data: design }, { data: reviews }] = await Promise.all([
     // is_submitted=true, not just the latest revision — if the customer
     // regenerated a fresh proof after submitting but hasn't re-submitted
     // it yet, that draft revision isn't what staff is meant to be
@@ -39,7 +39,6 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
       .order("revision_number", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    db.from("lg_audit_log").select("*").eq("label_order_id", o.id).order("created_at", { ascending: false }).limit(30),
     db.from("compliance_reviews").select("*").eq("label_order_id", o.id).order("decided_at", { ascending: false }),
   ]);
 
@@ -106,17 +105,6 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
               ))}
             </ul>
           )}
-        </div>
-
-        <div className="card">
-          <h2>Audit trail</h2>
-          <ul className="audit-list">
-            {(auditRows ?? []).map((a) => (
-              <li key={a.id}>
-                {new Date(a.created_at).toLocaleString()} — <strong>{a.actor}</strong> {a.action}
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
     </div>
