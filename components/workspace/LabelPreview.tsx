@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Theme } from "@/lib/types";
 import { Summary, safeJson } from "./types";
-import LayoutVariantPicker from "./LayoutVariantPicker";
 import LabelStagePreview from "./LabelStagePreview";
 
 interface Props {
@@ -18,10 +17,8 @@ export default function LabelPreview({ token, summary, theme, onGenerated }: Pro
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showVariantPicker, setShowVariantPicker] = useState(false);
   const { order } = summary;
   const capReached = order.revisionsUsed >= order.revisionLimit;
-  const hasCustomLayout = summary.canvasLayout !== null;
 
   async function generate() {
     setBusy(true);
@@ -63,31 +60,6 @@ export default function LabelPreview({ token, summary, theme, onGenerated }: Pro
             ))}
           </div>
         </div>
-      )}
-
-      {!hasCustomLayout || showVariantPicker ? (
-        <LayoutVariantPicker
-          token={token}
-          onApplied={() => {
-            setShowVariantPicker(false);
-            onGenerated();
-          }}
-        />
-      ) : (
-        <p className="field-hint">
-          <button
-            type="button"
-            className="btn btn-outline"
-            style={{ padding: "4px 10px", fontSize: 12 }}
-            onClick={() => {
-              if (window.confirm("This replaces your current design with a fresh starting layout — continue?")) {
-                setShowVariantPicker(true);
-              }
-            }}
-          >
-            Reset to a starting layout…
-          </button>
-        </p>
       )}
 
       <div className="revision-meter">
