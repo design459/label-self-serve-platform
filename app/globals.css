@@ -935,6 +935,19 @@ table.review-table th {
   color: #1d4ed8;
 }
 
+.stat-card-accent {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.stat-card-accent .stat-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.stat-card-accent .stat-value {
+  color: #fff;
+}
+
 .stat-label {
   margin: 0;
   font-size: 12px;
@@ -975,6 +988,75 @@ table.review-table th {
 
 .section-dot-ok {
   background: var(--accent);
+}
+
+/* Staff dashboard: full-width search bar and pill-shaped row actions —
+   see ReviewQueueTables.tsx. */
+.dashboard-search {
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  box-shadow: var(--shadow-card);
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+
+.dashboard-search:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.dashboard-table-card {
+  background: var(--paper);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.dashboard-table-card h2 {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pill-btn-dark {
+  background: var(--ink);
+  color: #fff;
+}
+
+.pill-btn-dark:hover {
+  background: #000;
+}
+
+.pill-btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.pill-btn-danger:hover {
+  background: #8f1f18;
+}
+
+.pill-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .row-avatar {
