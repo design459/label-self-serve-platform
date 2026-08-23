@@ -6,6 +6,13 @@
    text (Roboto). */
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Roboto+Slab:wght@600;700&display=swap");
 
+/* Sinhala/Tamil label fonts (see lib/types.ts's FONT_PRESETS) — loaded
+   remotely here since the live editor/preview run in the customer's own
+   browser with normal internet access; the actual PDF render instead
+   self-hosts these same families as base64 data (lib/artboard.ts +
+   lib/fontAssets.ts) so Chromium's render never depends on a live fetch. */
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&family=Noto+Sans+Tamil:wght@400;700&family=Yaldevi:wght@400;700&display=swap");
+
 :root {
   --ink: #20211f;
   --muted: #8a8677;
@@ -2183,12 +2190,35 @@ input[type="range"] {
   margin: 0 auto 10px;
 }
 
-.canvas-toolbar select,
-.canvas-toolbar input[type="color"] {
+.canvas-toolbar select {
   width: auto;
   padding: 4px 6px;
   font-size: 12px;
   flex-shrink: 0;
+}
+
+/* Font/badge color swatches — the browser's bare <input type="color">
+   reads as an unlabeled sliver next to the icon buttons around it (easy to
+   miss as "this changes text color"); this makes it a same-sized, clearly
+   clickable swatch instead, matching the icon-btn footprint. */
+.canvas-toolbar input[type="color"] {
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.canvas-toolbar input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.canvas-toolbar input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 5px;
 }
 
 .canvas-toolbar-text-btn {

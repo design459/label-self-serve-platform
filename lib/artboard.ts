@@ -1,6 +1,7 @@
 import { FontPairing, NutritionField, PackFormatTemplate, PanelStyle, ProductCategory, RegulatoryContent, Theme, FONT_PRESETS } from "./types";
 import { CanvasElement, HEX, backgroundCss } from "./canvasLayout";
 import { ICON_SVG_MARKUP } from "./iconAssets";
+import { NOTO_SANS_SINHALA_WOFF2, NOTO_SANS_TAMIL_WOFF2, YALDEVI_WOFF2 } from "./fontAssets";
 
 // Compliance boundary, enforced by construction, not just convention:
 //  (a) ALL free-text fields — ingredients, statutory_marks, claims,
@@ -294,6 +295,25 @@ function documentShell(sheetsHtml: string): string {
 <head>
 <meta charset="utf-8" />
 <style>
+  /* Self-hosted Sinhala/Tamil webfonts — base64-embedded (lib/fontAssets.ts)
+     rather than fetched over the network, so this render never depends on
+     Chromium making its own outbound request (see lib/types.ts's
+     FONT_PRESETS comment on why the PDF path avoids that). */
+  @font-face {
+    font-family: 'Noto Sans Sinhala';
+    font-weight: 400;
+    src: url(data:font/woff2;base64,${NOTO_SANS_SINHALA_WOFF2}) format('woff2');
+  }
+  @font-face {
+    font-family: 'Noto Sans Tamil';
+    font-weight: 400;
+    src: url(data:font/woff2;base64,${NOTO_SANS_TAMIL_WOFF2}) format('woff2');
+  }
+  @font-face {
+    font-family: 'Yaldevi';
+    font-weight: 400;
+    src: url(data:font/woff2;base64,${YALDEVI_WOFF2}) format('woff2');
+  }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   .sheet {

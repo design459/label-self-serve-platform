@@ -61,10 +61,22 @@ export interface FontPairing {
 // a Netlify Function with a minimal bundled font set and no network
 // access, so a named font like "Georgia" isn't guaranteed to exist there
 // the way it does on a desktop browser. Generic keywords always resolve.
+//
+// The three Sinhala/Tamil entries below are the one exception: they name
+// real webfont families (loaded via app/globals.css for the live editor/
+// preview, and self-hosted as base64 @font-face data in lib/artboard.ts
+// for the actual PDF render — see lib/fontAssets.ts) rather than a generic
+// keyword, since no generic CSS font keyword renders those scripts at all.
+// Latin characters typed alongside Sinhala/Tamil text still fall through
+// to each stack's trailing sans-serif, so this doesn't regress the
+// "always resolves" guarantee above for everything else on the label.
 export const FONT_PRESETS: FontPairing[] = [
   { id: "sans-modern", label: "Modern sans", heading: "system-ui, sans-serif", body: "system-ui, sans-serif" },
   { id: "serif-classic", label: "Classic serif", heading: "serif", body: "sans-serif" },
   { id: "mono-technical", label: "Technical mono", heading: "monospace", body: "sans-serif" },
+  { id: "sinhala-noto", label: "Sinhala (Noto Sans)", heading: "'Noto Sans Sinhala', sans-serif", body: "'Noto Sans Sinhala', sans-serif" },
+  { id: "tamil-noto", label: "Tamil (Noto Sans)", heading: "'Noto Sans Tamil', sans-serif", body: "'Noto Sans Tamil', sans-serif" },
+  { id: "sinhala-yaldevi", label: "Sinhala (Yaldevi)", heading: "'Yaldevi', sans-serif", body: "'Yaldevi', sans-serif" },
 ];
 
 export interface Zone {
