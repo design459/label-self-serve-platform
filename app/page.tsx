@@ -2,6 +2,7 @@ import Link from "next/link";
 import ProductPicker from "@/components/landing/ProductPicker";
 import HowItWorks from "@/components/landing/HowItWorks";
 import FeatureHighlights from "@/components/landing/FeatureHighlights";
+import Footer from "@/components/landing/Footer";
 
 export default function HomePage() {
   return (
@@ -35,6 +36,7 @@ export default function HomePage() {
       </div>
       <HowItWorks />
       <FeatureHighlights />
+      <Footer />
     </>
   );
 }
