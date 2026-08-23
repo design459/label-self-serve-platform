@@ -101,7 +101,7 @@ export default function WorkspaceApp({ token }: { token: string }) {
     <MarketingCopyEditor key="marketing" token={token} summary={summary} locked={locked} onSaved={load} />,
     <CategoryPanelEditor key="regulatory" token={token} summary={summary} locked={locked} onSaved={load} />,
     <LabelPreview key="design" token={token} summary={summary} theme={theme} onGenerated={load} />,
-    <SubmitForReview key="submit" token={token} summary={summary} onSubmitted={load} />,
+    <SubmitForReview key="submit" token={token} summary={summary} theme={theme} onSubmitted={load} />,
   ];
 
   return (
