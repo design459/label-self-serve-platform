@@ -1060,8 +1060,24 @@ table.review-table th {
   color: #1d4ed8;
 }
 
+.stat-card-clickable {
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.stat-card-clickable:hover {
+  border-color: var(--accent);
+}
+
 .stat-card-accent {
   background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.stat-card-accent.stat-card-clickable:hover {
   border-color: var(--accent-dark);
 }
 
