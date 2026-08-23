@@ -373,6 +373,31 @@ export default function CanvasEditor({
     saveContent(el.type, value);
   }
 
+  // Which language (if any) to offer a translate shortcut for, based on
+  // the element's OWN chosen font — a Sinhala/Tamil font is a strong
+  // signal the customer wants that script here, so there's no separate
+  // language picker to also keep in sync.
+  const TRANSLATE_LANGUAGE_BY_FONT: Record<string, "Sinhala" | "Tamil"> = {
+    "sinhala-noto": "Sinhala",
+    "sinhala-yaldevi": "Sinhala",
+    "tamil-noto": "Tamil",
+  };
+
+  const [translateBusy, setTranslateBusy] = useState(false);
+
+  async function translateDraft(language: "Sinhala" | "Tamil") {
+    if (!contentDraft.trim()) return;
+    setTranslateBusy(true);
+    const res = await fetch(`/api/workspace/${token}/translate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: contentDraft, language }),
+    });
+    const data = await res.json().catch(() => null);
+    setTranslateBusy(false);
+    if (res.ok && data?.translation) setContentDraft(data.translation);
+  }
+
   const family = (fontId: string, kind: "heading" | "body") => (FONT_PRESETS.find((f) => f.id === fontId) ?? FONT_PRESETS[0])[kind];
   const inlineEditPx = (mm: number) => Math.max(8, mm * dispScale * 2.2); // matches LabelStagePreview's own px() so the textarea's text roughly matches the rendered size
 
@@ -878,7 +903,19 @@ export default function CanvasEditor({
                   el.type === "claims" ||
                   el.type === "ingredients" ||
                   el.type === "statutoryMarks") ? (
-                  <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+                  <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
+                    {TRANSLATE_LANGUAGE_BY_FONT[el.style.fontId] && (
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        disabled={translateBusy}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={() => translateDraft(TRANSLATE_LANGUAGE_BY_FONT[el.style.fontId])}
+                        style={{ position: "absolute", top: 2, right: 2, padding: "3px 8px", fontSize: 11, zIndex: 2, background: "var(--paper)" }}
+                      >
+                        {translateBusy ? "Translating…" : `Translate to ${TRANSLATE_LANGUAGE_BY_FONT[el.style.fontId]}`}
+                      </button>
+                    )}
                     {(el.type === "ingredients" || el.type === "statutoryMarks") && (
                       <p
                         style={{
