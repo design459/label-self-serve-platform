@@ -46,15 +46,22 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     if (!order.selected_template_id) {
       return NextResponse.json({ error: "Pick a template before generating." }, { status: 400 });
     }
+    // Fast-path check using data already on `order` — avoids spinning up
+    // headless Chromium just to find out afterward that no revision could
+    // be spent anyway. lg_spend_revision() still re-checks both
+    // atomically right before it actually spends one (see below), so a
+    // race between two concurrent requests still can't over-spend.
+    if (order.status === "approved") {
+      return NextResponse.json({ error: "This label is already approved — no further revisions." }, { status: 409 });
+    }
+    if (order.revisions_used >= order.revision_limit) {
+      return NextResponse.json(
+        { error: `revision cap reached (${order.revisions_used} of ${order.revision_limit})` },
+        { status: 409 }
+      );
+    }
 
     const db = supabaseAdmin();
-
-    const { data: newDesign, error: spendError } = await db.rpc("lg_spend_revision", { p_order_id: order.id });
-    if (spendError) {
-      const status =
-        spendError.message.includes("already approved") || spendError.message.includes("cap reached") ? 409 : 500;
-      return NextResponse.json({ error: spendError.message }, { status });
-    }
 
     const [{ data: template }, { data: regulatory }, { data: logo }, { data: panelTemplate }] = await Promise.all([
       db.from("pack_format_templates").select("*").eq("id", order.selected_template_id).single(),
@@ -133,6 +140,12 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     // pages within the same browser instance — buildArtboardHtml() always
     // renders exactly one <div class="sheet">, so each page gets its own
     // screenshot rather than trying to paginate a raster image.
+    //
+    // Rendered BEFORE lg_spend_revision runs, on purpose: launching headless
+    // Chromium on a serverless function is the single most failure-prone
+    // step here (cold starts, memory pressure), and a customer's limited
+    // revisions shouldn't be burned by a render that never produced a
+    // proof. Spending only happens once these buffers exist.
     let pngBuffers: Buffer[];
     try {
       const browser = await launchBrowser();
@@ -170,6 +183,13 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
         { error: `Proof rendering failed: ${err instanceof Error ? err.message : "unknown error"}` },
         { status: 500 }
       );
+    }
+
+    const { data: newDesign, error: spendError } = await db.rpc("lg_spend_revision", { p_order_id: order.id });
+    if (spendError) {
+      const status =
+        spendError.message.includes("already approved") || spendError.message.includes("cap reached") ? 409 : 500;
+      return NextResponse.json({ error: spendError.message }, { status });
     }
 
     const proofPaths = pngBuffers.map((_, i) => `orders/${order.id}/designs/${newDesign.id}/proof-${i + 1}.png`);
