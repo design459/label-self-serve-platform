@@ -202,6 +202,11 @@ export interface CatalogProduct {
   ingredients: string;
   claims: string;
   statutory_marks: string;
+  // Split out of statutory_marks (see 0007_description_and_warnings.sql) —
+  // these feed the Supplement/Nutrition Facts panel's own suggestedUse/
+  // warnings fields, not the free-text "Description" field.
+  suggested_use: string;
+  warnings: string;
   serving_size: string;
   calories: string;
 }

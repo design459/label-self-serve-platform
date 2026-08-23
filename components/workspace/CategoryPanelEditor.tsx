@@ -27,6 +27,19 @@ export default function CategoryPanelEditor({ token, summary, locked, onSaved }:
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  const [genBusy, setGenBusy] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+
+  async function generateDescription() {
+    setGenBusy(true);
+    setGenError(null);
+    const res = await fetch(`/api/workspace/${token}/regulatory/generate-description`, { method: "POST" });
+    const data = await safeJson(res);
+    setGenBusy(false);
+    if (!res.ok) return setGenError(data?.error || "Couldn't generate a description.");
+    setStatutoryMarks(data.description || "");
+  }
+
   useEffect(() => {
     setIngredients(reg?.ingredients ?? "");
     setClaims(reg?.claims ?? "");
@@ -66,7 +79,8 @@ export default function CategoryPanelEditor({ token, summary, locked, onSaved }:
     <div className="card">
       <h2>4. Regulatory details — {CATEGORY_LABELS[summary.order.category]}</h2>
       <p className="field-hint" style={{ marginTop: -8, marginBottom: 16 }}>
-        Exact text only — this is what appears on the compliance-checked label. Never invented for you.
+        Exact text only — this is what appears on the compliance-checked label. Never invented for you, except the
+        Description field below, which can draft a starting point for you to review and edit.
       </p>
       {error && <div className="error-box">{error}</div>}
 
@@ -81,6 +95,20 @@ export default function CategoryPanelEditor({ token, summary, locked, onSaved }:
       <div className="field">
         <label>Description</label>
         <textarea value={statutoryMarks} disabled={locked} onChange={(e) => setStatutoryMarks(e.target.value)} />
+        <button
+          type="button"
+          className="btn btn-outline"
+          disabled={locked || genBusy}
+          onClick={generateDescription}
+          style={{ marginTop: 8 }}
+        >
+          {genBusy ? "Generating…" : "Generate description"}
+        </button>
+        {genError && (
+          <div className="error-box" style={{ marginTop: 8 }}>
+            {genError}
+          </div>
+        )}
       </div>
 
       {panel && panel.panel_style !== "blank" && panel.field_schema.length > 0 && (

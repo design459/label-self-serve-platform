@@ -79,12 +79,22 @@ export async function POST(req: NextRequest) {
       resolvedCategory = product.category;
       regulatoryInsert = {
         ingredients: product.ingredients ?? "",
-        nutrition_panel: { calories: product.calories, servingSize: product.serving_size },
+        nutrition_panel: {
+          calories: product.calories,
+          servingSize: product.serving_size,
+          suggestedUse: product.suggested_use ?? "",
+          warnings: product.warnings ?? "",
+        },
         claims: product.claims ?? "",
         batch_code: "",
         manufacture_date: null,
         expiry_date: null,
-        statutory_marks: product.statutory_marks ?? "",
+        // The free-text "Description" field — starts blank even for a
+        // known catalog product; the customer drafts it with the
+        // generate-description endpoint or writes their own. Real
+        // suggested-use/warning text lives in nutrition_panel above, not
+        // here.
+        statutory_marks: "",
       };
     } else {
       if (!customProductName || typeof customProductName !== "string" || !customProductName.trim()) {

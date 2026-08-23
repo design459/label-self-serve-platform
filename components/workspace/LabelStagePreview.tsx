@@ -187,7 +187,7 @@ export function ElementPreview({ el, scale, summary, logoUrl }: { el: CanvasElem
     case "statutoryMarks":
       return (
         <div style={{ fontFamily: family(el.style.fontId, "body"), fontSize: px(el.style.fontSize), color: el.style.color, overflow: "hidden" }}>
-          <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontWeight: 700 }}>Statutory marks</p>
+          <p style={{ margin: 0, fontFamily: family(el.style.fontId, "heading"), fontWeight: 700 }}>Description</p>
           <div style={textStyle(el.style)}>{renderBody(regulatory?.statutory_marks || "", el.style.listStyle)}</div>
         </div>
       );

@@ -208,7 +208,7 @@ function renderElement(el: CanvasElement, ctx: RenderCtx): string {
       const color = safeColor(el.style.color);
       const deco = textDecorationCss(el.style);
       return `<div style="${rect} font-family:${pair.body}; font-size:${size}mm; color:${color};">
-        <p style="margin:0 0 1mm; font-family:${pair.heading}; font-weight:700; font-size:${size}mm; color:${color};">Statutory marks</p>
+        <p style="margin:0 0 1mm; font-family:${pair.heading}; font-weight:700; font-size:${size}mm; color:${color};">Description</p>
         <div style="${deco};">${renderTextBody(ctx.regulatory.statutory_marks, el.style)}</div>
       </div>`;
     }
