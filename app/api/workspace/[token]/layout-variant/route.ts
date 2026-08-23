@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOrderByToken } from "@/lib/workspaceAuth";
 import { supabaseAdmin, logAudit } from "@/lib/supabaseServer";
-import { buildDefaultLayout, validateCanvasElements, LayoutVariant } from "@/lib/canvasLayout";
+import { buildDefaultLayout, validateCanvasElements, LayoutVariant, LABEL_TEMPLATES } from "@/lib/canvasLayout";
 import { CategoryPanelTemplate, PackFormatTemplate } from "@/lib/types";
 import { apiCatch } from "@/lib/apiError";
 
 const VALID_VARIANTS: LayoutVariant[] = ["classic", "photo-focus", "centered"];
 
-// Applies one of a few hand-designed starting arrangements (the "template
-// gallery" — see lib/canvasLayout.ts's LAYOUT_VARIANTS) as the order's
-// canvas_layout. Distinct from layout/route.ts (which saves a customer's
-// own edited arrangement) — this always starts from a fresh, server-
-// computed default, so it's meant to be used before or instead of manual
-// customization, never merged with it.
+// Applies either a plain layout variant or a full LABEL_TEMPLATES preset
+// (variant + font + colors) as the order's canvas_layout. Distinct from
+// layout/route.ts (which saves a customer's own edited arrangement) — this
+// always starts from a fresh, server-computed default, so it's meant to be
+// used before or instead of manual customization, never merged with it.
 export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
   try {
     const order = await getOrderByToken(params.token);
@@ -25,7 +24,8 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     }
 
     const body = await req.json().catch(() => null);
-    const variant: LayoutVariant = VALID_VARIANTS.includes(body?.variant) ? body.variant : "classic";
+    const chosenTemplate = LABEL_TEMPLATES.find((t) => t.id === body?.templateId) ?? null;
+    const variant: LayoutVariant = chosenTemplate ? chosenTemplate.variant : VALID_VARIANTS.includes(body?.variant) ? body.variant : "classic";
     // Defaults to true (the original behavior: immediately overwrite the
     // order's page-1 canvas_layout) — the full-page editor's Templates tab
     // passes apply:false instead, since there it's just computing a fresh
@@ -43,7 +43,9 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
 
     const panel = panelTemplate as CategoryPanelTemplate | null;
     const draft = buildDefaultLayout(template as PackFormatTemplate, order.category, panel, {
-      fontId: order.font_id,
+      fontId: chosenTemplate?.fontId ?? order.font_id,
+      primaryColor: chosenTemplate?.primaryColor,
+      accentColor: chosenTemplate?.accentColor,
       variant,
     });
     // Run through the same validator as a manual save — cheap, and keeps
@@ -56,17 +58,29 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     });
 
     if (shouldSave) {
-      const { error: updateError } = await db
-        .from("label_orders")
-        .update({ canvas_layout: validated, updated_at: new Date().toISOString() })
-        .eq("id", order.id);
+      const updatePatch: Record<string, unknown> = { canvas_layout: validated, updated_at: new Date().toISOString() };
+      // A chosen LABEL_TEMPLATES preset also resets the order's default
+      // font and theme colors to match — a plain variant (no templateId)
+      // only ever touches the arrangement, never these.
+      if (chosenTemplate) {
+        updatePatch.font_id = chosenTemplate.fontId;
+        updatePatch.theme = {
+          primaryColor: chosenTemplate.primaryColor,
+          accentColor: chosenTemplate.accentColor,
+          backgroundColor: chosenTemplate.backgroundColor,
+          backgroundType: "color",
+          backgroundGradient: null,
+          customColors: [],
+        };
+      }
+      const { error: updateError } = await db.from("label_orders").update(updatePatch).eq("id", order.id);
       if (updateError) {
         return NextResponse.json({ error: `Failed to apply layout: ${updateError.message}` }, { status: 500 });
       }
-      await logAudit(order.id, "customer", "layout_variant_applied", { variant });
+      await logAudit(order.id, "customer", "layout_variant_applied", { variant, templateId: chosenTemplate?.id ?? null });
     }
 
-    return NextResponse.json({ ok: true, elements: validated });
+    return NextResponse.json({ ok: true, elements: validated, backgroundColor: chosenTemplate?.backgroundColor ?? null });
   } catch (err) {
     return apiCatch(err);
   }

@@ -426,6 +426,30 @@ export const LAYOUT_VARIANTS: { id: LayoutVariant; label: string; description: s
   { id: "centered", label: "Centered", description: "Photo and name centered as a calm, symmetrical block." },
 ];
 
+export interface LabelTemplate {
+  id: string;
+  name: string;
+  variant: LayoutVariant;
+  fontId: string;
+  primaryColor: string;
+  accentColor: string;
+  backgroundColor: string;
+}
+
+// A small "template" gallery: real combinations of an existing layout
+// variant, font pairing, and color pair (the exact same colors as
+// THEME_PRESETS in lib/types.ts) — not new invented designs or content.
+// Picking one only re-arranges/re-styles the customer's own real data,
+// same compliance boundary as buildDefaultLayout below.
+export const LABEL_TEMPLATES: LabelTemplate[] = [
+  { id: "classic-forest", name: "Classic Forest", variant: "classic", fontId: "sans-modern", primaryColor: "#1f4d38", accentColor: "#2e6b4f", backgroundColor: "#ffffff" },
+  { id: "photo-ocean", name: "Photo Focus Blue", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#1d4ed8", accentColor: "#60a5fa", backgroundColor: "#ffffff" },
+  { id: "centered-sunset", name: "Centered Sunset", variant: "centered", fontId: "serif-classic", primaryColor: "#9a3412", accentColor: "#f97316", backgroundColor: "#fffaf5" },
+  { id: "classic-plum", name: "Classic Plum", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#a78bfa", backgroundColor: "#ffffff" },
+  { id: "photo-slate", name: "Photo Focus Slate", variant: "photo-focus", fontId: "mono-technical", primaryColor: "#1e293b", accentColor: "#64748b", backgroundColor: "#f8fafc" },
+  { id: "centered-rose", name: "Centered Rose", variant: "centered", fontId: "sans-modern", primaryColor: "#701a75", accentColor: "#d946ef", backgroundColor: "#fdf4ff" },
+];
+
 function defaultRectFor(type: BoundElementType, fallback: CanvasElement[]): CanvasElement {
   const found = fallback.find((el) => el.type === type);
   if (found) return found;
