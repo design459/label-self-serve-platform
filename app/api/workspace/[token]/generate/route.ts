@@ -5,7 +5,7 @@ import { buildArtboardHtml, ArtboardInput } from "@/lib/artboard";
 import { buildDefaultLayout, CanvasElement } from "@/lib/canvasLayout";
 import { generateQrDataUrl } from "@/lib/labelCodes";
 import { launchBrowser } from "@/lib/launchBrowser";
-import { resizeForEmbedding } from "@/lib/resizeImage";
+import { embeddedDataUrl } from "@/lib/resizeImage";
 import { fetchImageAssets } from "@/lib/renderOrderPdf";
 import { CategoryPanelTemplate, FONT_PRESETS, PackFormatTemplate, RegulatoryContent, Theme } from "@/lib/types";
 import { safeGradientStops } from "@/lib/canvasLayout";
@@ -99,8 +99,7 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
         // enough resolution for a small photo box, and embedding the
         // original upload's full size/resolution here is what was hanging
         // the whole request.
-        const resized = await resizeForEmbedding(buf, 600);
-        logoDataUrl = `data:image/png;base64,${resized.toString("base64")}`;
+        logoDataUrl = await embeddedDataUrl(buf, 600);
       }
     }
 

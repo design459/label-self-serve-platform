@@ -2,13 +2,19 @@ import { supabaseAdmin, storageBucket } from "./supabaseServer";
 import { buildMultiPageArtboardHtml, ArtboardInput } from "./artboard";
 import { CanvasElement } from "./canvasLayout";
 import { launchBrowser } from "./launchBrowser";
-import { resizeForEmbedding } from "./resizeImage";
+import { embeddedDataUrl } from "./resizeImage";
 
 // Downloads and base64-embeds every freeform "image" element referenced
 // anywhere across a set of pages — shared by the customer proof
 // (generate/route.ts) and this file's own renderDesignPdf below. Like
 // logoDataUrl, never persisted: re-fetched fresh from label_assets/storage
 // every time a page actually needs to render.
+//
+// Sequential on purpose, not Promise.all: a customer can place several
+// full-size uploaded images on one label, and decoding/resizing them all
+// concurrently is what pushed a real order's staff PDF render (see
+// lib/resizeImage.ts's comment) into a 502 — one at a time keeps peak
+// memory bounded even if it costs a little wall-clock time.
 export async function fetchImageAssets(orderId: string, pages: CanvasElement[][], maxDim: number): Promise<Record<string, string>> {
   const assetIds = Array.from(
     new Set(pages.flatMap((els) => els.filter((el): el is Extract<CanvasElement, { type: "image" }> => el.type === "image").map((el) => el.assetId)))
@@ -18,17 +24,14 @@ export async function fetchImageAssets(orderId: string, pages: CanvasElement[][]
   const db = supabaseAdmin();
   const { data: assets } = await db.from("label_assets").select("*").eq("label_order_id", orderId).eq("kind", "image").in("id", assetIds);
 
-  const entries = await Promise.all(
-    (assets ?? []).map(async (asset) => {
-      const { data: fileBlob } = await db.storage.from(storageBucket()).download(asset.storage_path);
-      if (!fileBlob) return null;
-      const buf = Buffer.from(await fileBlob.arrayBuffer());
-      const resized = await resizeForEmbedding(buf, maxDim);
-      return [asset.id as string, `data:image/png;base64,${resized.toString("base64")}`] as const;
-    })
-  );
-
-  return Object.fromEntries(entries.filter((e): e is NonNullable<typeof e> => e !== null));
+  const result: Record<string, string> = {};
+  for (const asset of assets ?? []) {
+    const { data: fileBlob } = await db.storage.from(storageBucket()).download(asset.storage_path);
+    if (!fileBlob) continue;
+    const buf = Buffer.from(await fileBlob.arrayBuffer());
+    result[asset.id as string] = await embeddedDataUrl(buf, maxDim);
+  }
+  return result;
 }
 
 // Shared by the approval PDF (app/api/admin/review/[id]/route.ts, POST) and
@@ -63,8 +66,7 @@ export async function renderDesignPdf(
       // since this feeds a print/download-quality PDF, but the photo box
       // is still a small fraction of the label — nowhere near needing an
       // arbitrarily large original upload's full resolution.
-      const resized = await resizeForEmbedding(buf, 1200);
-      logoDataUrl = `data:image/png;base64,${resized.toString("base64")}`;
+      logoDataUrl = await embeddedDataUrl(buf, 1200);
     }
   }
 
