@@ -82,6 +82,7 @@ interface Props {
   onElementsChange: (els: CanvasElement[], opts?: ChangeOpts) => void;
   logoUrl: string | null;
   onLogoUploaded: () => void;
+  onContentSaved: () => void;
   selectedId: string | null;
   onSelectedIdChange: (id: string | null) => void;
   theme: ThemeEdits;
@@ -118,6 +119,7 @@ export default function CanvasEditor({
   onElementsChange,
   logoUrl,
   onLogoUploaded,
+  onContentSaved,
   selectedId,
   onSelectedIdChange,
   theme,
@@ -303,6 +305,69 @@ export default function CanvasEditor({
   }
 
   const selected = elements.find((e) => e.id === selectedId) ?? null;
+
+  // Retype/clear support for the bound content types that are just a
+  // single string (productName/tagline live on the order row; claims/
+  // ingredients/statutoryMarks live in label_regulatory_content) — the
+  // structured nutritionPanel and computed footer stay editable only via
+  // the workspace page's own forms. Draft resets whenever the selection
+  // changes so switching elements always starts from the saved value, not
+  // whatever was left in the box.
+  const [contentDraft, setContentDraft] = useState("");
+  const [contentBusy, setContentBusy] = useState(false);
+  const [contentSaved, setContentSaved] = useState(false);
+
+  useEffect(() => {
+    if (!selected) return;
+    if (selected.type === "productName") setContentDraft(order.displayName ?? order.productName);
+    else if (selected.type === "tagline") setContentDraft(order.marketingTagline ?? "");
+    else if (selected.type === "claims") setContentDraft(regulatory?.claims ?? "");
+    else if (selected.type === "ingredients") setContentDraft(regulatory?.ingredients ?? "");
+    else if (selected.type === "statutoryMarks") setContentDraft(regulatory?.statutory_marks ?? "");
+    else return;
+    setContentSaved(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
+  async function saveContent(type: string, value: string) {
+    setContentBusy(true);
+    setContentSaved(false);
+    const isMarketing = type === "productName" || type === "tagline";
+    const res = await fetch(`/api/workspace/${token}/${isMarketing ? "marketing" : "regulatory"}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        type === "productName"
+          ? { displayName: value }
+          : type === "tagline"
+          ? { marketingTagline: value }
+          : {
+              // The regulatory route replaces the whole row, unlike the
+              // marketing route's per-field fallback — every other field
+              // has to come along unchanged or it gets wiped.
+              ingredients: regulatory?.ingredients ?? "",
+              claims: regulatory?.claims ?? "",
+              statutoryMarks: regulatory?.statutory_marks ?? "",
+              batchCode: regulatory?.batch_code ?? "",
+              manufactureDate: regulatory?.manufacture_date ?? null,
+              expiryDate: regulatory?.expiry_date ?? null,
+              nutritionPanel: regulatory?.nutrition_panel ?? {},
+              [type === "claims" ? "claims" : type === "ingredients" ? "ingredients" : "statutoryMarks"]: value,
+            }
+      ),
+    });
+    setContentBusy(false);
+    if (res.ok) {
+      setContentSaved(true);
+      onContentSaved();
+    }
+  }
+
+  function clearContent(type: string) {
+    if (!confirm("Clear this text? It'll also be cleared from your marketing copy / regulatory details.")) return;
+    setContentDraft("");
+    saveContent(type, "");
+  }
 
   function toggleTab(tab: "text" | "icons" | "templates" | "photo" | "background") {
     setActiveTab((cur) => (cur === tab ? null : tab));
@@ -831,26 +896,66 @@ export default function CanvasEditor({
           onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])}
         />
 
-        {selected && (selected.type === "text" || selected.type === "icon") && (
-          <div className="card element-content-editor">
-            {selected.type === "text" && (
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label>Text</label>
-                <textarea
-                  value={selected.content}
-                  maxLength={300}
-                  onChange={(e) => updateElement(selected.id, { content: e.target.value } as Partial<CanvasElement>, true)}
-                />
-              </div>
-            )}
-            {selected.type === "icon" && (
-              <div className="field" style={{ marginBottom: 0 }}>
-                <label>Change icon</label>
-                <IconPicker value={selected.iconId} onSelect={(id) => updateElement(selected.id, { iconId: id } as Partial<CanvasElement>)} />
-              </div>
-            )}
-          </div>
-        )}
+        {selected &&
+          (selected.type === "text" ||
+            selected.type === "icon" ||
+            selected.type === "productName" ||
+            selected.type === "tagline" ||
+            selected.type === "claims" ||
+            selected.type === "ingredients" ||
+            selected.type === "statutoryMarks") && (
+            <div className="card element-content-editor">
+              {selected.type === "text" && (
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label>Text</label>
+                  <textarea
+                    value={selected.content}
+                    maxLength={300}
+                    onChange={(e) => updateElement(selected.id, { content: e.target.value } as Partial<CanvasElement>, true)}
+                  />
+                </div>
+              )}
+              {selected.type === "icon" && (
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label>Change icon</label>
+                  <IconPicker value={selected.iconId} onSelect={(id) => updateElement(selected.id, { iconId: id } as Partial<CanvasElement>)} />
+                </div>
+              )}
+              {(selected.type === "productName" ||
+                selected.type === "tagline" ||
+                selected.type === "claims" ||
+                selected.type === "ingredients" ||
+                selected.type === "statutoryMarks") && (
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label>
+                    {selected.type === "productName"
+                      ? "Product name"
+                      : selected.type === "tagline"
+                      ? "Tagline"
+                      : selected.type === "claims"
+                      ? "Claims (comma-separated)"
+                      : selected.type === "ingredients"
+                      ? "Ingredients"
+                      : "Description"}
+                  </label>
+                  <p className="field-hint" style={{ marginTop: 0 }}>
+                    This box has to stay — the label's compliance layout needs it — but you can retype or clear what's
+                    in it here. It also updates your saved{" "}
+                    {selected.type === "productName" || selected.type === "tagline" ? "marketing copy" : "regulatory details"}.
+                  </p>
+                  <textarea value={contentDraft} onChange={(e) => { setContentDraft(e.target.value); setContentSaved(false); }} />
+                  <div className="btn-row" style={{ marginTop: 8 }}>
+                    <button type="button" className="btn" disabled={contentBusy} onClick={() => saveContent(selected.type, contentDraft)}>
+                      {contentBusy ? "Saving…" : contentSaved ? "Saved ✓" : "Save"}
+                    </button>
+                    <button type="button" className="btn btn-outline" disabled={contentBusy || !contentDraft} onClick={() => clearContent(selected.type)}>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
       </div>
     </div>
   );

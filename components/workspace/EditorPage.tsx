@@ -210,6 +210,18 @@ export default function EditorPage({ token }: { token: string }) {
     if (res.ok && data?.logoUrl) setLogoUrl(data.logoUrl);
   }
 
+  // After the canvas editor's own content editor retypes/clears a bound
+  // text element (product name, tagline, claims, ingredients, description)
+  // straight through to the marketing/regulatory routes — refetches
+  // `summary` so the on-canvas preview picks up the new value immediately,
+  // without touching pages/theme (those are this page's own live draft,
+  // not server-derived).
+  async function refreshSummary() {
+    const res = await fetch(`/api/workspace/${token}/summary?t=${Date.now()}`, { cache: "no-store" });
+    const data = await safeJson(res);
+    if (res.ok) setSummary(data);
+  }
+
   async function save() {
     setBusy(true);
     setError(null);
@@ -307,6 +319,7 @@ export default function EditorPage({ token }: { token: string }) {
             onElementsChange={setElements}
             logoUrl={logoUrl}
             onLogoUploaded={refreshLogo}
+            onContentSaved={refreshSummary}
             selectedId={selectedId}
             onSelectedIdChange={setSelectedId}
             theme={theme}
