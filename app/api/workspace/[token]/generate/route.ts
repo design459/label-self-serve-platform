@@ -90,19 +90,6 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     const extraPagesElements: CanvasElement[][] = Array.isArray(order.extra_pages) ? order.extra_pages : [];
     const allPagesElements: CanvasElement[][] = [elements, ...extraPagesElements];
 
-    let logoDataUrl: string | null = null;
-    if (logo?.storage_path) {
-      const { data: fileBlob } = await db.storage.from(storageBucket()).download(logo.storage_path);
-      if (fileBlob) {
-        const buf = Buffer.from(await fileBlob.arrayBuffer());
-        // See lib/resizeImage.ts — the on-screen proof only ever needs
-        // enough resolution for a small photo box, and embedding the
-        // original upload's full size/resolution here is what was hanging
-        // the whole request.
-        logoDataUrl = await embeddedDataUrl(buf, 600);
-      }
-    }
-
     const reg: RegulatoryContent = regulatory
       ? {
           ingredients: regulatory.ingredients ?? "",
@@ -123,10 +110,47 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
           statutory_marks: "",
         };
 
-    const qrDataUrl = await generateQrDataUrl(reg.batch_code || order.sku_code);
-    // Only the on-screen proof needs full resolution here — 600px matches
-    // the same cap logoDataUrl already uses above.
-    const imageAssets = await fetchImageAssets(order.id, allPagesElements, 600);
+    // Rendered (including this fetch/launch phase) BEFORE lg_spend_revision
+    // runs, on purpose: launching headless Chromium on a serverless
+    // function is the single most failure-prone step here (cold starts,
+    // memory pressure), and a customer's limited revisions shouldn't be
+    // burned by a render that never produced a proof. Spending only
+    // happens once these buffers exist.
+    //
+    // Chromium's cold start has no dependency on the logo/image/QR fetch
+    // work — starting it in the same Promise.all overlaps that latency
+    // instead of paying for it afterward. See lib/resizeImage.ts for why
+    // the fetch side of this matters at all (a detailed uploaded image
+    // forced through PNG was the original cause of a 30+ second hang).
+    let logoDataUrl: string | null;
+    let imageAssets: Record<string, string>;
+    let qrDataUrl: string | null;
+    let browser: Awaited<ReturnType<typeof launchBrowser>>;
+    try {
+      [logoDataUrl, imageAssets, qrDataUrl, browser] = await Promise.all([
+        (async () => {
+          if (!logo?.storage_path) return null;
+          const { data: fileBlob } = await db.storage.from(storageBucket()).download(logo.storage_path);
+          if (!fileBlob) return null;
+          const buf = Buffer.from(await fileBlob.arrayBuffer());
+          // See lib/resizeImage.ts — the on-screen proof only ever needs
+          // enough resolution for a small photo box, and embedding the
+          // original upload's full size/resolution here is what was
+          // hanging the whole request.
+          return embeddedDataUrl(buf, 600);
+        })(),
+        // Only the on-screen proof needs full resolution here — 600px
+        // matches the same cap logoDataUrl uses above.
+        fetchImageAssets(order.id, allPagesElements, 600),
+        generateQrDataUrl(reg.batch_code || order.sku_code),
+        launchBrowser(),
+      ]);
+    } catch (err) {
+      return NextResponse.json(
+        { error: `Proof rendering failed: ${err instanceof Error ? err.message : "unknown error"}` },
+        { status: 500 }
+      );
+    }
 
     const renderInput: Omit<ArtboardInput, "watermark"> = {
       productName: order.product_name || order.sku_code,
@@ -158,49 +182,40 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     // pages within the same browser instance — buildArtboardHtml() always
     // renders exactly one <div class="sheet">, so each page gets its own
     // screenshot rather than trying to paginate a raster image.
-    //
-    // Rendered BEFORE lg_spend_revision runs, on purpose: launching headless
-    // Chromium on a serverless function is the single most failure-prone
-    // step here (cold starts, memory pressure), and a customer's limited
-    // revisions shouldn't be burned by a render that never produced a
-    // proof. Spending only happens once these buffers exist.
     let pngBuffers: Buffer[];
     try {
-      const browser = await launchBrowser();
-      try {
-        const widthMm = template.trim_width_mm + template.bleed_mm * 2;
-        const heightMm = template.trim_height_mm + template.bleed_mm * 2;
-        pngBuffers = await Promise.all(
-          allPagesElements.map(async (pageElements) => {
-            const page = await browser.newPage();
-            try {
-              // deviceScaleFactor gives a sharper capture without changing
-              // the mm-based CSS layout math (viewport must be large enough
-              // to contain the full .sheet before deviceScaleFactor
-              // multiplies it).
-              await page.setViewport({
-                width: Math.ceil(widthMm * 4) + 40,
-                height: Math.ceil(heightMm * 4) + 40,
-                deviceScaleFactor: 2,
-              });
-              const html = buildArtboardHtml({ ...renderInput, elements: pageElements, watermark: true });
-              await page.setContent(html, { waitUntil: "networkidle0" });
-              const sheet = await page.$(".sheet");
-              if (!sheet) throw new Error("Rendered sheet element not found.");
-              return Buffer.from(await sheet.screenshot({ type: "png" }));
-            } finally {
-              await page.close();
-            }
-          })
-        );
-      } finally {
-        await browser.close();
-      }
+      const widthMm = template.trim_width_mm + template.bleed_mm * 2;
+      const heightMm = template.trim_height_mm + template.bleed_mm * 2;
+      pngBuffers = await Promise.all(
+        allPagesElements.map(async (pageElements) => {
+          const page = await browser.newPage();
+          try {
+            // deviceScaleFactor gives a sharper capture without changing
+            // the mm-based CSS layout math (viewport must be large enough
+            // to contain the full .sheet before deviceScaleFactor
+            // multiplies it).
+            await page.setViewport({
+              width: Math.ceil(widthMm * 4) + 40,
+              height: Math.ceil(heightMm * 4) + 40,
+              deviceScaleFactor: 2,
+            });
+            const html = buildArtboardHtml({ ...renderInput, elements: pageElements, watermark: true });
+            await page.setContent(html, { waitUntil: "networkidle0" });
+            const sheet = await page.$(".sheet");
+            if (!sheet) throw new Error("Rendered sheet element not found.");
+            return Buffer.from(await sheet.screenshot({ type: "png" }));
+          } finally {
+            await page.close();
+          }
+        })
+      );
     } catch (err) {
       return NextResponse.json(
         { error: `Proof rendering failed: ${err instanceof Error ? err.message : "unknown error"}` },
         { status: 500 }
       );
+    } finally {
+      await browser.close();
     }
 
     const { data: newDesign, error: spendError } = await db.rpc("lg_spend_revision", { p_order_id: order.id });

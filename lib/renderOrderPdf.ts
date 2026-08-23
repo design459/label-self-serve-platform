@@ -77,9 +77,14 @@ export async function renderDesignPdf(
 
   const extraPagesElements: CanvasElement[][] = Array.isArray(design.extra_pages_elements) ? design.extra_pages_elements : [];
   const page1Elements = (design.render_input as Omit<ArtboardInput, "watermark">).elements;
-  const [logoDataUrl, imageAssets] = await Promise.all([
+  // Chromium cold start (@sparticuz/chromium unpacking its binary on a
+  // fresh Netlify Function instance) has no dependency on the asset
+  // fetch/resize work above — starting it in the same Promise.all overlaps
+  // that latency instead of paying for it after assets are already ready.
+  const [logoDataUrl, imageAssets, browser] = await Promise.all([
     fetchLogoDataUrl(),
     fetchImageAssets(orderId, [page1Elements, ...extraPagesElements], 1200),
+    launchBrowser(),
   ]);
 
   const page1Input = { ...(design.render_input as Omit<ArtboardInput, "watermark">), logoDataUrl, imageAssets };
@@ -88,7 +93,6 @@ export async function renderDesignPdf(
   const html = buildMultiPageArtboardHtml(allInputs.map((input) => ({ ...input, watermark: opts.watermark })));
   const template = page1Input.template;
 
-  const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
