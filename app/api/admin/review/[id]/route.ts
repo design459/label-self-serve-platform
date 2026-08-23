@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentStaff } from "@/lib/supabaseAuth";
 import { supabaseAdmin, storageBucket, logAudit } from "@/lib/supabaseServer";
-import { buildMultiPageArtboardHtml, ArtboardInput } from "@/lib/artboard";
-import { CanvasElement } from "@/lib/canvasLayout";
-import { launchBrowser } from "@/lib/launchBrowser";
-import { resizeForEmbedding } from "@/lib/resizeImage";
+import { renderDesignPdf } from "@/lib/renderOrderPdf";
 import { apiCatch } from "@/lib/apiError";
 
 // The only code path in this app that can set label_orders.status =
@@ -48,59 +45,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     if (decision === "approved") {
-      if (!design.render_input) {
-        return NextResponse.json(
-          { error: "Missing render data for this design — cannot produce a print file." },
-          { status: 500 }
-        );
-      }
-      // Page 1's full ArtboardInput is design.render_input; extra pages
-      // (front/back, ...) share every field with it except `elements` —
-      // design.extra_pages_elements holds just the part that varies per
-      // page, reconstructed here into full inputs for the multi-page PDF.
-      // logoDataUrl is never persisted on render_input (see the comment in
-      // generate/route.ts — a multi-MB base64 logo in that jsonb column
-      // was blowing past the function's execution time) — re-fetched here
-      // from the same label_assets row instead.
-      let logoDataUrl: string | null = null;
-      const { data: logo } = await db.from("label_assets").select("*").eq("label_order_id", order.id).eq("kind", "logo").maybeSingle();
-      if (logo?.storage_path) {
-        const { data: fileBlob } = await db.storage.from(storageBucket()).download(logo.storage_path);
-        if (fileBlob) {
-          const buf = Buffer.from(await fileBlob.arrayBuffer());
-          // Larger cap than the customer-facing proof (see lib/resizeImage.ts)
-          // since this is the actual print deliverable, but the photo box
-          // is still a small fraction of the label — nowhere near needing
-          // an arbitrarily large original upload's full resolution.
-          const resized = await resizeForEmbedding(buf, 1200);
-          logoDataUrl = `data:image/png;base64,${resized.toString("base64")}`;
-        }
-      }
-      const page1Input = { ...(design.render_input as Omit<ArtboardInput, "watermark">), logoDataUrl };
-      const extraPagesElements: CanvasElement[][] = Array.isArray(design.extra_pages_elements) ? design.extra_pages_elements : [];
-      const allInputs: Omit<ArtboardInput, "watermark">[] = [page1Input, ...extraPagesElements.map((els) => ({ ...page1Input, elements: els }))];
-
-      const html = buildMultiPageArtboardHtml(allInputs.map((input) => ({ ...input, watermark: false })));
-      const template = page1Input.template;
-
       let pdfBuffer: Buffer;
       try {
-        const browser = await launchBrowser();
-        try {
-          const page = await browser.newPage();
-          await page.setContent(html, { waitUntil: "networkidle0" });
-          const widthMm = template.trim_width_mm + template.bleed_mm * 2;
-          const heightMm = template.trim_height_mm + template.bleed_mm * 2;
-          // Every page shares the same physical sheet size (one template
-          // per order), so a single width/height applies document-wide;
-          // .sheet's own page-break-after CSS (see buildMultiPageArtboardHtml)
-          // is what actually splits the content into separate PDF pages.
-          pdfBuffer = Buffer.from(
-            await page.pdf({ width: `${widthMm}mm`, height: `${heightMm}mm`, printBackground: true })
-          );
-        } finally {
-          await browser.close();
-        }
+        pdfBuffer = await renderDesignPdf(order.id, design, { watermark: false });
       } catch (err) {
         return NextResponse.json(
           { error: `Print-file rendering failed: ${err instanceof Error ? err.message : "unknown error"}` },

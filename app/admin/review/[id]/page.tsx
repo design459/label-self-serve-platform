@@ -61,7 +61,14 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
         </p>
 
         <div className="card">
-          <h2>Submitted proof{proofUrls.length > 1 ? `s (${proofUrls.length} pages)` : ""}</h2>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <h2 style={{ margin: 0 }}>Submitted proof{proofUrls.length > 1 ? `s (${proofUrls.length} pages)` : ""}</h2>
+            {proofUrls.length > 0 && (
+              <a className="btn btn-outline" href={`/api/admin/review/${o.id}/download-pdf`} style={{ padding: "6px 12px" }}>
+                Download PDF
+              </a>
+            )}
+          </div>
           <p className="field-hint">
             Revision {design?.revision_number ?? "—"} of {o.revision_limit} used ({o.revisions_used} used total).
           </p>
