@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { THEME_PRESETS, Theme } from "@/lib/types";
 import { Summary, safeJson } from "./types";
 import WorkspaceSidebar from "./WorkspaceSidebar";
@@ -78,10 +79,17 @@ export default function WorkspaceApp({ token }: { token: string }) {
   if (locked) {
     return (
       <div className="page">
-        <h1>{order.displayName || order.productName || order.skuCode}</h1>
-        <p className="subtitle">
-          {order.customerName} · SKU {order.skuCode} · <span className="pill pill-approved">approved</span>
-        </p>
+        <div className="wizard-topbar">
+          <div>
+            <h1 style={{ marginBottom: 0 }}>{order.displayName || order.productName || order.skuCode}</h1>
+            <p className="subtitle" style={{ marginBottom: 0 }}>
+              {order.customerName} · SKU {order.skuCode} · <span className="pill pill-approved">approved</span>
+            </p>
+          </div>
+          <Link className="btn btn-outline" href="/">
+            Home
+          </Link>
+        </div>
         <div className="card">
           <h2>Approved — print-ready</h2>
           <p>Your label has passed compliance review and is ready for print.</p>
@@ -115,6 +123,9 @@ export default function WorkspaceApp({ token }: { token: string }) {
               SKU {order.skuCode} · <span className={`pill pill-${order.status}`}>{order.status.replace("_", " ")}</span>
             </p>
           </div>
+          <Link className="btn btn-outline" href="/">
+            Home
+          </Link>
         </div>
 
         <div className="success-link-row" style={{ maxWidth: 480, marginBottom: 32 }}>
