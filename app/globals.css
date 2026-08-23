@@ -2599,43 +2599,6 @@ input[type="range"] {
   flex-direction: column;
 }
 
-/* Vintage-page skin for the label edit area only. Every rule above and
-   below (rail, panel, toolbar, stage frame, zoom control, pages panel,
-   topbar) reads its colors from the shared --paper, --line, --ink, --muted,
-   --accent family, --editor-bg and --shadow-card custom properties —
-   overriding those here, scoped to .editor-page, re-themes the whole
-   workspace without touching a single rule elsewhere or leaking into the
-   rest of the app (order forms, admin, homepage all keep the normal brand
-   palette). --select-blue is deliberately left alone: it's the "this is
-   selected" affordance shared with every other design tool convention, and
-   stays legible (a cool ink-stamp blue) against the warm parchment rather
-   than blending in. */
-.editor-page {
-  --paper: #faf3e4;
-  --line: #cbb992;
-  --ink: #3a2f22;
-  --muted: #8d7c5e;
-  --accent: #7a4a1f;
-  --accent-dark: #5a350f;
-  --accent-light: #f1e2c4;
-  --editor-bg: #efe3c8;
-  --shadow-card: 0 1px 2px rgba(58, 42, 20, 0.14), 0 2px 10px rgba(58, 42, 20, 0.1);
-  background-color: var(--editor-bg);
-  background-image: radial-gradient(rgba(122, 74, 31, 0.05) 1px, transparent 1px), radial-gradient(rgba(122, 74, 31, 0.04) 1px, transparent 1px);
-  background-size: 3px 3px, 7px 7px;
-  background-position: 0 0, 3.5px 3.5px;
-}
-
-/* A double-rule frame around the working sheet itself — the one purely
-   decorative touch, echoing an old letterpress plate border — without
-   touching the label's own background (set inline from the customer's
-   theme, never CSS here). */
-.editor-page .canvas-stage {
-  border: 1px solid var(--line);
-  outline: 1px solid var(--line);
-  outline-offset: 4px;
-}
-
 .editor-topbar {
   display: flex;
   align-items: center;
