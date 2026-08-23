@@ -1046,41 +1046,72 @@ table.review-table th {
 }
 
 /* Landing page: "How it works" step cards. */
+.how-it-works-header {
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto 40px;
+}
+
+.how-it-works-accent {
+  display: block;
+  width: 40px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 999px;
+  margin: 0 auto 20px;
+}
+
+.how-it-works-header .landing-section-title {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.how-it-works-header .field-hint {
+  font-size: 14px;
+  margin-top: 0;
+}
+
 .how-it-works-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  gap: 24px;
 }
 
 .how-it-works-card {
   position: relative;
   background: var(--paper);
-  border: 1px solid var(--line);
-  border-top: 3px solid var(--accent);
-  border-radius: var(--radius);
+  border-radius: 20px;
   box-shadow: var(--shadow-card);
-  padding: 24px 20px 20px;
+  padding: 36px 24px 28px;
+  text-align: center;
 }
 
 .how-it-works-number {
   position: absolute;
-  top: 14px;
-  right: 16px;
+  top: 18px;
+  right: 20px;
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 13px;
   color: var(--line);
 }
 
-.how-it-works-icon {
+.how-it-works-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--accent-light);
   color: var(--accent);
-  margin-bottom: 12px;
+  margin-bottom: 18px;
 }
 
 .how-it-works-card h3 {
   font-family: var(--font-heading);
-  font-size: 16px;
-  margin: 0 0 6px;
+  font-size: 17px;
+  margin: 0 0 8px;
   color: var(--accent-dark);
 }
 

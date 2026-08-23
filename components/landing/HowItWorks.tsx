@@ -12,15 +12,18 @@ const STEPS = [
 export default function HowItWorks() {
   return (
     <section className="landing-section">
-      <h2 className="landing-section-title">How it works</h2>
-      <p className="field-hint" style={{ marginBottom: 28 }}>
-        Six steps from a blank label to a print-ready, compliance-checked file.
-      </p>
+      <div className="how-it-works-header">
+        <span className="how-it-works-accent" />
+        <h2 className="landing-section-title">Simple Six-Step Workflow</h2>
+        <p className="field-hint">We&apos;ve streamlined label creation into a clear, efficient path.</p>
+      </div>
       <div className="how-it-works-grid">
         {STEPS.map((step, i) => (
           <div className="how-it-works-card" key={step.title}>
-            <span className="how-it-works-number">{i + 1}</span>
-            <step.icon size={22} className="how-it-works-icon" />
+            <span className="how-it-works-number">{String(i + 1).padStart(2, "0")}</span>
+            <span className="how-it-works-icon-box">
+              <step.icon size={22} />
+            </span>
             <h3>{step.title}</h3>
             <p>{step.body}</p>
           </div>
