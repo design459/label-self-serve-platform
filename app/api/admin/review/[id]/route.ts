@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentStaff } from "@/lib/supabaseAuth";
 import { supabaseAdmin, storageBucket, logAudit } from "@/lib/supabaseServer";
-import { renderDesignPdf } from "@/lib/renderOrderPdf";
+import { renderDesignPdf, withRenderTimeout } from "@/lib/renderOrderPdf";
 import { apiCatch } from "@/lib/apiError";
 
 // The only code path in this app that can set label_orders.status =
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (decision === "approved") {
       let pdfBuffer: Buffer;
       try {
-        pdfBuffer = await renderDesignPdf(order.id, design, { watermark: false });
+        pdfBuffer = await withRenderTimeout(renderDesignPdf(order.id, design, { watermark: false }));
       } catch (err) {
         return NextResponse.json(
           { error: `Print-file rendering failed: ${err instanceof Error ? err.message : "unknown error"}` },

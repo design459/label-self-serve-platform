@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentStaff } from "@/lib/supabaseAuth";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { renderDesignPdf } from "@/lib/renderOrderPdf";
+import { renderDesignPdf, withRenderTimeout } from "@/lib/renderOrderPdf";
 import { apiCatch } from "@/lib/apiError";
 
 // Staff-only on-demand PDF of the currently submitted proof — separate
@@ -31,7 +31,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     let pdfBuffer: Buffer;
     try {
-      pdfBuffer = await renderDesignPdf(order.id, design, { watermark: true });
+      pdfBuffer = await withRenderTimeout(renderDesignPdf(order.id, design, { watermark: true }));
     } catch (err) {
       return NextResponse.json(
         { error: `PDF rendering failed: ${err instanceof Error ? err.message : "unknown error"}` },
