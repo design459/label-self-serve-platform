@@ -26,6 +26,14 @@ function validTheme(theme: unknown): Theme | null {
     backgroundType === "gradient" && stops.length >= 2
       ? { angle: typeof rawGradient?.angle === "number" && Number.isFinite(rawGradient.angle) ? rawGradient.angle : 45, stops }
       : null;
+  // Must round-trip the same shape marketing/route.ts saves onto
+  // label_orders.theme — summary/route.ts's needsRegeneration deep-compares
+  // that against this design's saved theme, and a dropped field (this used
+  // to omit customColors entirely) makes them mismatch forever, even right
+  // after a fresh regenerate.
+  const customColors = Array.isArray(t.customColors)
+    ? t.customColors.filter((c): c is string => typeof c === "string" && HEX.test(c))
+    : [];
 
   return {
     primaryColor: t.primaryColor,
@@ -33,6 +41,7 @@ function validTheme(theme: unknown): Theme | null {
     backgroundColor: t.backgroundColor,
     backgroundType,
     backgroundGradient,
+    customColors,
   };
 }
 
