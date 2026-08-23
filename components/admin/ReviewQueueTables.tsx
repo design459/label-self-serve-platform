@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { RefreshCw } from "lucide-react";
 import { LabelOrder, LabelOrderStatus } from "@/lib/types";
 
 function initials(name: string): string {
@@ -28,10 +30,17 @@ interface Props {
 }
 
 export default function ReviewQueueTables({ orders: initialOrders }: Props) {
+  const router = useRouter();
+  const [isRefreshing, startRefresh] = useTransition();
   const [orders, setOrders] = useState(initialOrders);
   const [query, setQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // page.tsx re-fetches on the server when router.refresh() runs, but this
+  // component's own `orders` is local state seeded once from that prop —
+  // without this it would never pick up the fresh data.
+  useEffect(() => setOrders(initialOrders), [initialOrders]);
   // Clicking a stat card both highlights it and filters the table below to
   // just that status — clicking the already-active one clears the filter
   // back to the normal Awaiting/Recently-Decided split.
@@ -111,13 +120,24 @@ export default function ReviewQueueTables({ orders: initialOrders }: Props) {
 
   return (
     <>
-      <input
-        type="text"
-        className="dashboard-search"
-        placeholder="Search by customer name…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <div className="dashboard-search-row">
+        <input
+          type="text"
+          className="dashboard-search"
+          placeholder="Search by customer name…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button
+          type="button"
+          className="btn btn-outline dashboard-refresh-btn"
+          disabled={isRefreshing}
+          onClick={() => startRefresh(() => router.refresh())}
+        >
+          <RefreshCw size={16} className={isRefreshing ? "spin" : ""} />
+          {isRefreshing ? "Refreshing…" : "Refresh"}
+        </button>
+      </div>
 
       <div className="stat-row">
         {STAT_CARDS.map((c) => (
