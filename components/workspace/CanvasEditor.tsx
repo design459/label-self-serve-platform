@@ -94,6 +94,23 @@ function randomId(): string {
 
 type AlignMode = "left" | "centerH" | "right" | "top" | "centerV" | "bottom";
 
+interface HeadingStylePreset {
+  label: string;
+  content: string;
+  fontSize: number; // mm, same unit every other element's style.fontSize uses
+  bold: boolean;
+  previewPx: number; // purely for sizing the preview text in the rail panel
+}
+
+// mm sizes echo lib/canvasLayout.ts's own defaults (productName: 5mm,
+// tagline: 2.4mm) so a "Heading 1" ends up roughly product-name-sized.
+const HEADING_STYLE_PRESETS: HeadingStylePreset[] = [
+  { label: "Heading 1", content: "Heading 1", fontSize: 6, bold: true, previewPx: 22 },
+  { label: "Heading 2", content: "Heading 2", fontSize: 4.5, bold: true, previewPx: 18 },
+  { label: "Heading 3", content: "Heading 3", fontSize: 3.2, bold: true, previewPx: 15 },
+  { label: "Paragraph", content: "Paragraph text", fontSize: 2.2, bold: false, previewPx: 13 },
+];
+
 export default function CanvasEditor({
   token,
   summary,
@@ -196,7 +213,7 @@ export default function CanvasEditor({
     onSelectedIdChange(copy.id);
   }
 
-  function addText() {
+  function addText(preset?: HeadingStylePreset) {
     const el: CanvasElement = {
       id: randomId(),
       type: "text",
@@ -204,8 +221,8 @@ export default function CanvasEditor({
       y: 40,
       w: 40,
       h: 12,
-      content: "Your text here",
-      style: { fontId: order.fontId, fontSize: 3, color: "#1b2430" },
+      content: preset?.content ?? "Your text here",
+      style: { fontId: order.fontId, fontSize: preset?.fontSize ?? 3, color: "#1b2430", bold: preset?.bold },
     };
     onElementsChange([...elements, el]);
     onSelectedIdChange(el.id);
@@ -284,10 +301,15 @@ export default function CanvasEditor({
         <div className="editor-rail-panel">
           {activeTab === "text" && (
             <>
-              <p className="wizard-section-label">Text</p>
-              <button type="button" className="btn btn-block" onClick={addText}>
-                + Add a text box
-              </button>
+              <p className="wizard-section-label">Headings styles</p>
+              <div className="heading-style-list">
+                {HEADING_STYLE_PRESETS.map((preset) => (
+                  <button type="button" key={preset.label} className="heading-style-row" onClick={() => addText(preset)}>
+                    <span className="heading-style-row-marker" />
+                    <span style={{ fontSize: preset.previewPx, fontWeight: preset.bold ? 700 : 400 }}>{preset.label}</span>
+                  </button>
+                ))}
+              </div>
             </>
           )}
           {activeTab === "icons" && (
