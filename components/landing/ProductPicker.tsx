@@ -6,7 +6,7 @@ import { CatalogProduct, CategoryPanelTemplate } from "@/lib/types";
 
 type Selection = { kind: "catalog"; product: CatalogProduct } | { kind: "category"; category: CategoryPanelTemplate } | null;
 
-// Generated product photography for the 7 starter catalog products — see
+// Generated product photography for the starter catalog products — see
 // supabase/migrations/0002_products.sql for where these names come from.
 // A product added later without a matching photo just renders without one.
 const PRODUCT_IMAGES: Record<string, string> = {
@@ -16,8 +16,12 @@ const PRODUCT_IMAGES: Record<string, string> = {
   "Gurmar (Masbedda)": "/products/gurmar.jpg",
   Heenbovitiya: "/products/heenbovitiya.jpg",
   Moringa: "/products/moringa.jpg",
-  "Turmeric & Black Pepper": "/products/turmeric-black-pepper.jpg",
 };
+
+// Kept out of the public picker grid — the real product row is untouched
+// (staff can still select it in the admin order form), this just keeps the
+// landing page's grid at an even 6 cards instead of an unbalanced 7th.
+const HIDDEN_FROM_PICKER = new Set(["Turmeric & Black Pepper"]);
 
 const PANEL_STYLE_LABELS: Record<CategoryPanelTemplate["panel_style"], string> = {
   supplement_facts: "Supplement Facts",
@@ -42,7 +46,7 @@ export default function ProductPicker() {
   useEffect(() => {
     fetch("/api/public/products")
       .then((res) => (res.ok ? res.json() : { products: [] }))
-      .then((data) => setProducts(data.products ?? []))
+      .then((data) => setProducts((data.products ?? []).filter((p: CatalogProduct) => !HIDDEN_FROM_PICKER.has(p.name))))
       .catch(() => setProducts([]));
     fetch("/api/public/categories")
       .then((res) => (res.ok ? res.json() : { categories: [] }))
