@@ -57,7 +57,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       // (front/back, ...) share every field with it except `elements` —
       // design.extra_pages_elements holds just the part that varies per
       // page, reconstructed here into full inputs for the multi-page PDF.
-      const page1Input = design.render_input as Omit<ArtboardInput, "watermark">;
+      // logoDataUrl is never persisted on render_input (see the comment in
+      // generate/route.ts — a multi-MB base64 logo in that jsonb column
+      // was blowing past the function's execution time) — re-fetched here
+      // from the same label_assets row instead.
+      let logoDataUrl: string | null = null;
+      const { data: logo } = await db.from("label_assets").select("*").eq("label_order_id", order.id).eq("kind", "logo").maybeSingle();
+      if (logo?.storage_path) {
+        const { data: fileBlob } = await db.storage.from(storageBucket()).download(logo.storage_path);
+        if (fileBlob) {
+          const buf = Buffer.from(await fileBlob.arrayBuffer());
+          const contentType = fileBlob.type || "image/png";
+          logoDataUrl = `data:${contentType};base64,${buf.toString("base64")}`;
+        }
+      }
+      const page1Input = { ...(design.render_input as Omit<ArtboardInput, "watermark">), logoDataUrl };
       const extraPagesElements: CanvasElement[][] = Array.isArray(design.extra_pages_elements) ? design.extra_pages_elements : [];
       const allInputs: Omit<ArtboardInput, "watermark">[] = [page1Input, ...extraPagesElements.map((els) => ({ ...page1Input, elements: els }))];
 

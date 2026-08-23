@@ -201,11 +201,21 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
     const uploadError = uploadResults.find((r) => r.error)?.error;
     if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
 
+    // logoDataUrl is a full base64-embedded copy of the logo (up to 5MB of
+    // binary → ~6.7MB of base64 text) — fine to include transiently in the
+    // HTML fed to Puppeteer above, but never persisted here: storing that
+    // in a jsonb column made this update payload large enough to blow past
+    // the serverless function's execution time on real (multi-MB) logos,
+    // which failed silently after the revision had already been spent
+    // (Netlify's own timeout response isn't valid JSON, so the client saw
+    // a generic "couldn't generate a proof" with no detail). The actual
+    // logo file already lives in label_assets/storage — re-fetched by
+    // filename at approval time instead (app/api/admin/review/[id]/route.ts).
     const { error: designUpdateError } = await db
       .from("label_designs")
       .update({
         theme,
-        render_input: renderInput,
+        render_input: { ...renderInput, logoDataUrl: null },
         extra_pages_elements: extraPagesElements,
         proof_storage_path: proofPaths[0],
         proof_storage_paths: proofPaths,
