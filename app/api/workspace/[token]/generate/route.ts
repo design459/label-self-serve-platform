@@ -5,6 +5,7 @@ import { buildArtboardHtml, ArtboardInput } from "@/lib/artboard";
 import { buildDefaultLayout, CanvasElement } from "@/lib/canvasLayout";
 import { generateQrDataUrl } from "@/lib/labelCodes";
 import { launchBrowser } from "@/lib/launchBrowser";
+import { resizeForEmbedding } from "@/lib/resizeImage";
 import { CategoryPanelTemplate, FONT_PRESETS, PackFormatTemplate, RegulatoryContent, Theme } from "@/lib/types";
 import { safeGradientStops } from "@/lib/canvasLayout";
 import { apiCatch } from "@/lib/apiError";
@@ -84,8 +85,12 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       const { data: fileBlob } = await db.storage.from(storageBucket()).download(logo.storage_path);
       if (fileBlob) {
         const buf = Buffer.from(await fileBlob.arrayBuffer());
-        const contentType = fileBlob.type || "image/png";
-        logoDataUrl = `data:${contentType};base64,${buf.toString("base64")}`;
+        // See lib/resizeImage.ts — the on-screen proof only ever needs
+        // enough resolution for a small photo box, and embedding the
+        // original upload's full size/resolution here is what was hanging
+        // the whole request.
+        const resized = await resizeForEmbedding(buf, 600);
+        logoDataUrl = `data:image/png;base64,${resized.toString("base64")}`;
       }
     }
 

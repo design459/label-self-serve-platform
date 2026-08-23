@@ -4,6 +4,7 @@ import { supabaseAdmin, storageBucket, logAudit } from "@/lib/supabaseServer";
 import { buildMultiPageArtboardHtml, ArtboardInput } from "@/lib/artboard";
 import { CanvasElement } from "@/lib/canvasLayout";
 import { launchBrowser } from "@/lib/launchBrowser";
+import { resizeForEmbedding } from "@/lib/resizeImage";
 import { apiCatch } from "@/lib/apiError";
 
 // The only code path in this app that can set label_orders.status =
@@ -67,8 +68,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const { data: fileBlob } = await db.storage.from(storageBucket()).download(logo.storage_path);
         if (fileBlob) {
           const buf = Buffer.from(await fileBlob.arrayBuffer());
-          const contentType = fileBlob.type || "image/png";
-          logoDataUrl = `data:${contentType};base64,${buf.toString("base64")}`;
+          // Larger cap than the customer-facing proof (see lib/resizeImage.ts)
+          // since this is the actual print deliverable, but the photo box
+          // is still a small fraction of the label — nowhere near needing
+          // an arbitrarily large original upload's full resolution.
+          const resized = await resizeForEmbedding(buf, 1200);
+          logoDataUrl = `data:image/png;base64,${resized.toString("base64")}`;
         }
       }
       const page1Input = { ...(design.render_input as Omit<ArtboardInput, "watermark">), logoDataUrl };
