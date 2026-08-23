@@ -17,12 +17,13 @@ function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-type StatCardStatus = Extract<LabelOrderStatus, "submitted" | "approved" | "in_progress">;
+type StatCardStatus = Extract<LabelOrderStatus, "submitted" | "approved" | "in_progress" | "rejected">;
 
 const STAT_CARDS: { status: StatCardStatus; label: string }[] = [
   { status: "submitted", label: "Awaiting" },
   { status: "approved", label: "Approved" },
   { status: "in_progress", label: "In progress" },
+  { status: "rejected", label: "Rejected" },
 ];
 
 interface Props {
@@ -50,10 +51,12 @@ export default function ReviewQueueTables({ orders: initialOrders }: Props) {
   const others = useMemo(() => orders.filter((o) => o.status !== "submitted" && o.status !== "draft"), [orders]);
   const approvedCount = useMemo(() => orders.filter((o) => o.status === "approved").length, [orders]);
   const inProgressCount = useMemo(() => orders.filter((o) => o.status === "in_progress").length, [orders]);
+  const rejectedCount = useMemo(() => orders.filter((o) => o.status === "rejected").length, [orders]);
   const countByStatus: Record<StatCardStatus, number> = {
     submitted: submitted.length,
     approved: approvedCount,
     in_progress: inProgressCount,
+    rejected: rejectedCount,
   };
 
   const q = query.trim().toLowerCase();
