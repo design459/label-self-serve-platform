@@ -306,32 +306,40 @@ export default function CanvasEditor({
 
   const selected = elements.find((e) => e.id === selectedId) ?? null;
 
-  // Retype/clear support for the bound content types that are just a
-  // single string (productName/tagline live on the order row; claims/
-  // ingredients/statutoryMarks live in label_regulatory_content) — the
-  // structured nutritionPanel and computed footer stay editable only via
-  // the workspace page's own forms. Draft resets whenever the selection
-  // changes so switching elements always starts from the saved value, not
-  // whatever was left in the box.
+  // Retype support for the bound content types that are just a single
+  // string (productName/tagline live on the order row; claims/ingredients/
+  // statutoryMarks live in label_regulatory_content) — the structured
+  // nutritionPanel and computed footer stay editable only via the
+  // workspace page's own forms. Editing happens right on the canvas
+  // (double-click to enter, blur/click-away to save) rather than in a
+  // separate panel — draft resets whenever the selection changes so
+  // switching elements always starts from the saved value.
+  const BOUND_TEXT_TYPES = ["productName", "tagline", "claims", "ingredients", "statutoryMarks"] as const;
+  type BoundTextType = (typeof BOUND_TEXT_TYPES)[number];
+  function isBoundTextType(type: string): type is BoundTextType {
+    return (BOUND_TEXT_TYPES as readonly string[]).includes(type);
+  }
+
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [contentDraft, setContentDraft] = useState("");
-  const [contentBusy, setContentBusy] = useState(false);
-  const [contentSaved, setContentSaved] = useState(false);
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected || !isBoundTextType(selected.type)) return;
     if (selected.type === "productName") setContentDraft(order.displayName ?? order.productName);
     else if (selected.type === "tagline") setContentDraft(order.marketingTagline ?? "");
     else if (selected.type === "claims") setContentDraft(regulatory?.claims ?? "");
     else if (selected.type === "ingredients") setContentDraft(regulatory?.ingredients ?? "");
-    else if (selected.type === "statutoryMarks") setContentDraft(regulatory?.statutory_marks ?? "");
-    else return;
-    setContentSaved(false);
+    else setContentDraft(regulatory?.statutory_marks ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  async function saveContent(type: string, value: string) {
-    setContentBusy(true);
-    setContentSaved(false);
+  function startEditing(el: CanvasElement) {
+    if (!isBoundTextType(el.type)) return;
+    onSelectedIdChange(el.id);
+    setEditingId(el.id);
+  }
+
+  async function saveContent(type: BoundTextType, value: string) {
     const isMarketing = type === "productName" || type === "tagline";
     const res = await fetch(`/api/workspace/${token}/${isMarketing ? "marketing" : "regulatory"}`, {
       method: "POST",
@@ -352,22 +360,21 @@ export default function CanvasEditor({
               manufactureDate: regulatory?.manufacture_date ?? null,
               expiryDate: regulatory?.expiry_date ?? null,
               nutritionPanel: regulatory?.nutrition_panel ?? {},
-              [type === "claims" ? "claims" : type === "ingredients" ? "ingredients" : "statutoryMarks"]: value,
+              [type]: value,
             }
       ),
     });
-    setContentBusy(false);
-    if (res.ok) {
-      setContentSaved(true);
-      onContentSaved();
-    }
+    if (res.ok) onContentSaved();
   }
 
-  function clearContent(type: string) {
-    if (!confirm("Clear this text? It'll also be cleared from your marketing copy / regulatory details.")) return;
-    setContentDraft("");
-    saveContent(type, "");
+  function commitEditing(el: CanvasElement, value: string) {
+    setEditingId(null);
+    if (!isBoundTextType(el.type)) return;
+    saveContent(el.type, value);
   }
+
+  const family = (fontId: string, kind: "heading" | "body") => (FONT_PRESETS.find((f) => f.id === fontId) ?? FONT_PRESETS[0])[kind];
+  const inlineEditPx = (mm: number) => Math.max(8, mm * dispScale * 2.2); // matches LabelStagePreview's own px() so the textarea's text roughly matches the rendered size
 
   function toggleTab(tab: "text" | "icons" | "templates" | "photo" | "background") {
     setActiveTab((cur) => (cur === tab ? null : tab));
@@ -850,8 +857,8 @@ export default function CanvasEditor({
                 position={px}
                 style={{ zIndex: i, outline: selectedId === el.id ? "2px solid var(--select-blue)" : "1px dashed rgba(0,0,0,0.15)" }}
                 resizeHandleStyles={selectedId === el.id ? SELECTED_HANDLE_STYLES : undefined}
-                disableDragging={!!el.locked}
-                enableResizing={!el.locked}
+                disableDragging={!!el.locked || editingId === el.id}
+                enableResizing={!el.locked && editingId !== el.id}
                 onDragStop={(_e, d) => {
                   updateElement(el.id, { x: (d.x / dispW) * 100, y: (d.y / dispH) * 100 } as Partial<CanvasElement>);
                 }}
@@ -865,7 +872,63 @@ export default function CanvasEditor({
                 }}
                 onMouseDown={() => onSelectedIdChange(el.id)}
               >
-                <ElementPreview el={el} scale={dispScale} summary={summary} logoUrl={logoUrl} imageUrls={imageUrlMap} />
+                {editingId === el.id &&
+                (el.type === "productName" ||
+                  el.type === "tagline" ||
+                  el.type === "claims" ||
+                  el.type === "ingredients" ||
+                  el.type === "statutoryMarks") ? (
+                  <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+                    {(el.type === "ingredients" || el.type === "statutoryMarks") && (
+                      <p
+                        style={{
+                          margin: 0,
+                          fontFamily: family(el.style.fontId, "heading"),
+                          fontWeight: 700,
+                          fontSize: inlineEditPx(el.style.fontSize),
+                          color: el.style.color,
+                        }}
+                      >
+                        {el.type === "ingredients" ? "Ingredients" : "Description"}
+                      </p>
+                    )}
+                    <textarea
+                      autoFocus
+                      value={contentDraft}
+                      onChange={(e) => setContentDraft(e.target.value)}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          e.currentTarget.blur();
+                          setEditingId(null);
+                        } else if (e.key === "Enter" && el.type !== "ingredients" && el.type !== "statutoryMarks") {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      onBlur={(e) => commitEditing(el, e.target.value)}
+                      style={{
+                        flex: 1,
+                        width: "100%",
+                        resize: "none",
+                        border: "1px dashed var(--select-blue)",
+                        borderRadius: 2,
+                        background: "rgba(255,255,255,0.95)",
+                        fontFamily: family(el.style.fontId, "body"),
+                        fontSize: inlineEditPx(el.style.fontSize),
+                        color: el.style.color,
+                        padding: 2,
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{ width: "100%", height: "100%" }}
+                    onDoubleClick={() => startEditing(el)}
+                  >
+                    <ElementPreview el={el} scale={dispScale} summary={summary} logoUrl={logoUrl} imageUrls={imageUrlMap} />
+                  </div>
+                )}
               </Rnd>
             );
           })}
@@ -896,66 +959,32 @@ export default function CanvasEditor({
           onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])}
         />
 
-        {selected &&
-          (selected.type === "text" ||
-            selected.type === "icon" ||
-            selected.type === "productName" ||
-            selected.type === "tagline" ||
-            selected.type === "claims" ||
-            selected.type === "ingredients" ||
-            selected.type === "statutoryMarks") && (
-            <div className="card element-content-editor">
-              {selected.type === "text" && (
-                <div className="field" style={{ marginBottom: 0 }}>
-                  <label>Text</label>
-                  <textarea
-                    value={selected.content}
-                    maxLength={300}
-                    onChange={(e) => updateElement(selected.id, { content: e.target.value } as Partial<CanvasElement>, true)}
-                  />
-                </div>
-              )}
-              {selected.type === "icon" && (
-                <div className="field" style={{ marginBottom: 0 }}>
-                  <label>Change icon</label>
-                  <IconPicker value={selected.iconId} onSelect={(id) => updateElement(selected.id, { iconId: id } as Partial<CanvasElement>)} />
-                </div>
-              )}
-              {(selected.type === "productName" ||
-                selected.type === "tagline" ||
-                selected.type === "claims" ||
-                selected.type === "ingredients" ||
-                selected.type === "statutoryMarks") && (
-                <div className="field" style={{ marginBottom: 0 }}>
-                  <label>
-                    {selected.type === "productName"
-                      ? "Product name"
-                      : selected.type === "tagline"
-                      ? "Tagline"
-                      : selected.type === "claims"
-                      ? "Claims (comma-separated)"
-                      : selected.type === "ingredients"
-                      ? "Ingredients"
-                      : "Description"}
-                  </label>
-                  <p className="field-hint" style={{ marginTop: 0 }}>
-                    This box has to stay — the label's compliance layout needs it — but you can retype or clear what's
-                    in it here. It also updates your saved{" "}
-                    {selected.type === "productName" || selected.type === "tagline" ? "marketing copy" : "regulatory details"}.
-                  </p>
-                  <textarea value={contentDraft} onChange={(e) => { setContentDraft(e.target.value); setContentSaved(false); }} />
-                  <div className="btn-row" style={{ marginTop: 8 }}>
-                    <button type="button" className="btn" disabled={contentBusy} onClick={() => saveContent(selected.type, contentDraft)}>
-                      {contentBusy ? "Saving…" : contentSaved ? "Saved ✓" : "Save"}
-                    </button>
-                    <button type="button" className="btn btn-outline" disabled={contentBusy || !contentDraft} onClick={() => clearContent(selected.type)}>
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+        {selected && isBoundTextType(selected.type) && editingId !== selected.id && (
+          <p className="field-hint" style={{ marginTop: 12 }}>
+            Double-click the box on the canvas to retype it — required content stays in place, but its text is yours to edit.
+          </p>
+        )}
+
+        {selected && (selected.type === "text" || selected.type === "icon") && (
+          <div className="card element-content-editor">
+            {selected.type === "text" && (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Text</label>
+                <textarea
+                  value={selected.content}
+                  maxLength={300}
+                  onChange={(e) => updateElement(selected.id, { content: e.target.value } as Partial<CanvasElement>, true)}
+                />
+              </div>
+            )}
+            {selected.type === "icon" && (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Change icon</label>
+                <IconPicker value={selected.iconId} onSelect={(id) => updateElement(selected.id, { iconId: id } as Partial<CanvasElement>)} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
