@@ -12,13 +12,14 @@ export type LabelOrderStatus = "draft" | "in_progress" | "submitted" | "approved
 // Product type — orthogonal to PackFormat (physical packaging). Drives
 // which nutrition/supplement panel field set applies. See
 // supabase/migrations/0003_customer_self_serve.sql.
-export type ProductCategory = "capsule_tablet" | "powder" | "juice_beverage" | "bar" | "other";
+export type ProductCategory = "capsule_tablet" | "powder" | "juice_beverage" | "bar" | "spread" | "other";
 
 export const PRODUCT_CATEGORIES: ProductCategory[] = [
   "capsule_tablet",
   "powder",
   "juice_beverage",
   "bar",
+  "spread",
   "other",
 ];
 
@@ -27,6 +28,7 @@ export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   powder: "Powder",
   juice_beverage: "Juice / Beverage",
   bar: "Bar",
+  spread: "Spread",
   other: "Other",
 };
 

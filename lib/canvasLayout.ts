@@ -400,6 +400,54 @@ function buildCenteredLayout(ctx: LayoutCtx): CanvasElement[] {
   ];
 }
 
+// A wide jar-wrap composition for the "spread" category specifically —
+// nutrition facts as a tall strip on the left, the product's own photo and
+// centered brand name/tagline as a large hero in the middle, and claims/
+// description/ingredients stacked on the right. Ignores the template's own
+// zone_layout (which is tuned for the header/claims/left/right/footer
+// stack every other category uses) and the variant system entirely — this
+// category's real-world label shape (wide jar wrap, ~200x90mm) reads best
+// as three columns, not a stacked header. Still only arranges the
+// customer's own real data through the same 8 bound element types; no new
+// content type or invented copy.
+function buildSpreadLayout(ctx: LayoutCtx): CanvasElement[] {
+  const { fontId, primaryColor, accentColor, bodyColor } = ctx;
+  return [
+    { id: newId(), type: "nutritionPanel", x: 3, y: 5, w: 17, h: 88, style: { fontId, fontSize: 2.4, color: bodyColor } },
+    { id: newId(), type: "photo", x: 23, y: 5, w: 35, h: 52, imagePosition: { x: 50, y: 50, scale: 1 } },
+    {
+      id: newId(),
+      type: "productName",
+      x: 23,
+      y: 59,
+      w: 35,
+      h: 15,
+      style: { fontId, fontSize: 5.5, color: primaryColor, textAlign: "center" },
+    },
+    {
+      id: newId(),
+      type: "tagline",
+      x: 23,
+      y: 74,
+      w: 35,
+      h: 9,
+      style: { fontId, fontSize: 2.4, color: "#5b6472", textAlign: "center" },
+    },
+    {
+      id: newId(),
+      type: "claims",
+      x: 61,
+      y: 5,
+      w: 36,
+      h: 12,
+      style: { fontId, fontSize: 1.8, color: "#ffffff", badgeColor: accentColor },
+    },
+    { id: newId(), type: "statutoryMarks", x: 61, y: 18, w: 36, h: 28, style: { fontId, fontSize: 2.3, color: bodyColor } },
+    { id: newId(), type: "ingredients", x: 61, y: 48, w: 36, h: 28, style: { fontId, fontSize: 2.3, color: bodyColor } },
+    { id: newId(), type: "footer", x: 3, y: 91, w: 94, h: 7, style: { fontId, fontSize: 2, color: bodyColor } },
+  ];
+}
+
 // Maps each seeded pack_format_templates.zone_layout rect (see
 // supabase/migrations/0001_init.sql) into starter element positions, so a
 // customer who opens the editor for the first time sees their already-
@@ -424,6 +472,10 @@ export function buildDefaultLayout(
     accentColor: opts?.accentColor && HEX.test(opts.accentColor) ? opts.accentColor : "#2e6b4f",
     bodyColor: "#1b2430",
   };
+
+  if (category === "spread") {
+    return buildSpreadLayout(ctx);
+  }
 
   switch (opts?.variant) {
     case "photo-focus":
