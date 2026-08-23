@@ -1193,102 +1193,244 @@ table.review-table th {
   overflow: hidden;
 }
 
-.feature-mockup-icon {
+/* Editor mockup (pro): a dark app window — topbar, icon rail, canvas with
+   a real regulatory panel, and a compliance checklist — echoing the real
+   full-page editor's chrome and terminology without faking a screenshot. */
+.feature-mockup-editor-pro {
+  background: var(--accent-dark);
+}
+
+.fm-pro-topbar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 220px;
-  color: var(--accent);
-  background: var(--accent-light);
+  gap: 5px;
+  padding: 10px 12px;
+  background: #021b16;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Editor mockup: a rail + canvas, echoing the real full-page editor. */
-.feature-mockup-editor {
+.fm-pro-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.fm-pro-title {
+  margin-left: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  flex: 1;
+}
+
+.fm-pro-export {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  background: #fff;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.fm-pro-body {
   display: flex;
-  height: 220px;
+  height: 200px;
 }
 
-.fm-editor-rail {
-  width: 34px;
+.fm-pro-rail {
+  width: 30px;
   flex-shrink: 0;
-  background: var(--paper);
-  border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   padding: 12px 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.fm-editor-rail span {
-  width: 16px;
-  height: 16px;
-  border-radius: 5px;
-  background: var(--line);
+.fm-pro-rail span {
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
 }
 
-.fm-editor-rail span.active {
-  background: var(--accent);
+.fm-pro-rail span.active {
+  background: #fff;
 }
 
-.fm-editor-canvas {
+.fm-pro-canvas {
   flex: 1;
-  background: var(--editor-bg);
-  padding: 10px;
+  padding: 12px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  min-width: 0;
 }
 
-.fm-editor-toolbar {
-  height: 14px;
-  border-radius: 6px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-}
-
-.fm-editor-body {
-  flex: 1;
-  background: var(--paper);
-  border: 1px solid var(--line);
+.fm-pro-label {
+  width: 100%;
+  background: #fff;
   border-radius: 8px;
+  padding: 12px;
   display: flex;
   gap: 10px;
-  padding: 10px;
 }
 
-.fm-editor-photo {
-  width: 40%;
+.fm-pro-photo {
+  width: 30%;
+  flex-shrink: 0;
   border-radius: 6px;
   background: var(--accent-light);
+  align-self: stretch;
 }
 
-.fm-editor-lines {
+.fm-pro-lines {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 8px;
 }
 
-.fm-editor-line {
+.fm-pro-line {
   height: 8px;
   border-radius: 4px;
   background: var(--line);
 }
 
-.fm-editor-badges {
+.fm-pro-line-lg {
+  height: 11px;
+  background: var(--accent-dark);
+  opacity: 0.7;
+}
+
+.fm-pro-badges {
   display: flex;
   gap: 4px;
   margin-top: 4px;
 }
 
-.fm-editor-badges span {
-  width: 24px;
-  height: 10px;
+.fm-pro-badges span {
+  width: 18px;
+  height: 8px;
   border-radius: 999px;
   background: var(--accent);
-  opacity: 0.7;
+  opacity: 0.6;
+}
+
+.fm-pro-panel {
+  width: 34%;
+  flex-shrink: 0;
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.fm-pro-panel-title {
+  height: 7px;
+  width: 65%;
+  border-radius: 4px;
+  background: var(--accent-dark);
+  opacity: 0.6;
+  margin-bottom: 3px;
+}
+
+.fm-pro-panel-row {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+.fm-pro-checklist {
+  width: 92px;
+  flex-shrink: 0;
+  background: #fff;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fm-pro-check-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.fm-pro-check-row svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.fm-pro-compliant {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  padding: 6px;
+  border-radius: 6px;
+}
+
+/* Compliance mockup: a real checklist of regulatory fields instead of a
+   generic shield icon in a box. */
+.feature-mockup-compliance {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 220px;
+  justify-content: center;
+}
+
+.fm-compliance-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.fm-compliance-row svg {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.fm-compliance-row strong {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.fm-compliance-row span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.fm-compliance-footer {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 /* Proof mockup: echoes the real generated-proof watermark ribbon. */
