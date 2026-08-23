@@ -6,6 +6,25 @@ import { CatalogProduct, CategoryPanelTemplate } from "@/lib/types";
 
 type Selection = { kind: "catalog"; product: CatalogProduct } | { kind: "category"; category: CategoryPanelTemplate } | null;
 
+// Generated product photography for the 7 starter catalog products — see
+// supabase/migrations/0002_products.sql for where these names come from.
+// A product added later without a matching photo just renders without one.
+const PRODUCT_IMAGES: Record<string, string> = {
+  Ashwagandha: "/products/ashwagandha.jpg",
+  Beli: "/products/beli.jpg",
+  Garcinia: "/products/garcinia.jpg",
+  "Gurmar (Masbedda)": "/products/gurmar.jpg",
+  Heenbovitiya: "/products/heenbovitiya.jpg",
+  Moringa: "/products/moringa.jpg",
+  "Turmeric & Black Pepper": "/products/turmeric-black-pepper.jpg",
+};
+
+const PANEL_STYLE_LABELS: Record<CategoryPanelTemplate["panel_style"], string> = {
+  supplement_facts: "Supplement Facts",
+  nutrition_facts: "Nutrition Facts",
+  blank: "Blank canvas",
+};
+
 export default function ProductPicker() {
   const router = useRouter();
   const [products, setProducts] = useState<CatalogProduct[]>([]);
@@ -72,45 +91,45 @@ export default function ProductPicker() {
   return (
     <>
       <section className="landing-section">
-        <h2 className="landing-section-title">Popular products</h2>
-        <p className="field-hint" style={{ marginBottom: 20 }}>
-          Pick a product we already know — its real ingredients, claims and dosage text fill in automatically.
-        </p>
-        <div className="template-grid">
+        <div className="product-picker-header">
+          <span className="how-it-works-accent" />
+          <h2 className="landing-section-title">Select Your Starting Point</h2>
+          <p className="field-hint">
+            Pick a product we already know, or start from the closest category — either way, we set up the right
+            regulatory panel for you.
+          </p>
+        </div>
+
+        <div className="product-grid">
           {products.map((p) => (
             <div
               key={p.id}
-              className={`template-card ${selection?.kind === "catalog" && selection.product.id === p.id ? "selected" : ""}`}
+              className={`product-card ${selection?.kind === "catalog" && selection.product.id === p.id ? "selected" : ""}`}
               onClick={() => setSelection({ kind: "catalog", product: p })}
             >
-              <strong>{p.name}</strong>
-              <div>
+              <div className="product-card-info">
+                <strong>{p.name}</strong>
                 <span className="template-card-category">{p.category.replace("_", " ")}</span>
               </div>
+              {PRODUCT_IMAGES[p.name] && <img className="product-card-photo" src={PRODUCT_IMAGES[p.name]} alt="" />}
             </div>
           ))}
         </div>
-      </section>
 
-      <section className="landing-section">
-        <h2 className="landing-section-title">Or start from a category</h2>
-        <p className="field-hint" style={{ marginBottom: 20 }}>
-          Not on our list? Pick the closest category and we&apos;ll set up the right nutrition/supplement panel for
-          it — you fill in the real details yourself.
-        </p>
-        <div className="template-grid">
-          {categories.map((c) => (
-            <div
-              key={c.id}
-              className={`template-card ${selection?.kind === "category" && selection.category.category === c.category ? "selected" : ""}`}
-              onClick={() => setSelection({ kind: "category", category: c })}
-            >
-              <strong>{c.display_label}</strong>
-              <p className="field-hint">
-                {c.panel_style === "supplement_facts" ? "Supplement Facts panel" : c.panel_style === "nutrition_facts" ? "Nutrition Facts panel" : "Blank — fill in by hand"}
-              </p>
-            </div>
-          ))}
+        <div className="category-panel">
+          <h3>Browse by Category</h3>
+          <div className="category-grid">
+            {categories.map((c) => (
+              <div
+                key={c.id}
+                className={`category-pill ${selection?.kind === "category" && selection.category.category === c.category ? "selected" : ""}`}
+                onClick={() => setSelection({ kind: "category", category: c })}
+              >
+                <strong>{c.display_label}</strong>
+                <span>{PANEL_STYLE_LABELS[c.panel_style]}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
