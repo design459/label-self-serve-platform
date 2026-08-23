@@ -201,6 +201,11 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
             });
             const html = buildArtboardHtml({ ...renderInput, elements: pageElements, watermark: true });
             await page.setContent(html, { waitUntil: "networkidle0" });
+            // networkidle0 only covers actual network activity — the
+            // self-hosted Sinhala/Tamil @font-face data (base64, no
+            // request) can still be mid-parse/rasterize at that point, so
+            // without this a fresh page can screenshot those glyphs blank.
+            await page.evaluate(() => document.fonts.ready);
             const sheet = await page.$(".sheet");
             if (!sheet) throw new Error("Rendered sheet element not found.");
             return Buffer.from(await sheet.screenshot({ type: "png" }));

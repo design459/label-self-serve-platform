@@ -140,6 +140,11 @@ export async function renderDesignPdf(
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
+    // networkidle0 only covers actual network activity — the self-hosted
+    // Sinhala/Tamil @font-face data (base64, no request) can still be
+    // mid-parse/rasterize at that point, so without this the PDF can come
+    // out with those glyphs blank.
+    await page.evaluate(() => document.fonts.ready);
     log("page.setContent done");
     const widthMm = template.trim_width_mm + template.bleed_mm * 2;
     const heightMm = template.trim_height_mm + template.bleed_mm * 2;
