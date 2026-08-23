@@ -79,7 +79,7 @@ export default function CategoryPanelEditor({ token, summary, locked, onSaved }:
         <input type="text" placeholder="Non-GMO, Gluten Free, Vegan" value={claims} disabled={locked} onChange={(e) => setClaims(e.target.value)} />
       </div>
       <div className="field">
-        <label>Statutory marks</label>
+        <label>Description</label>
         <textarea value={statutoryMarks} disabled={locked} onChange={(e) => setStatutoryMarks(e.target.value)} />
       </div>
 
