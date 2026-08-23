@@ -29,12 +29,30 @@ import {
   Hexagon,
   Pentagon,
   Diamond,
+  Pill,
+  Citrus,
+  Carrot,
+  Cherry,
+  Banana,
+  Egg,
+  Coffee,
+  Activity,
+  Dumbbell,
+  Brain,
+  BadgeCheck,
+  Medal,
+  Trophy,
+  Box,
+  PackageCheck,
+  Droplets,
+  Octagon,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 import { IconId } from "@/lib/canvasLayout";
 
 // Explicit named imports only (never `import * as Icons`) so Next's build
-// tree-shakes everything except these 24 — keeps the browser bundle small
+// tree-shakes everything except these 48 — keeps the browser bundle small
 // despite lucide-react shipping 1000+ icons. Shared by IconPicker.tsx and
 // CanvasEditor.tsx's live preview so the picker glyph and canvas glyph can
 // never diverge.
@@ -69,4 +87,22 @@ export const ICON_COMPONENTS: Record<IconId, LucideIcon> = {
   hexagon: Hexagon,
   pentagon: Pentagon,
   diamond: Diamond,
+  pill: Pill,
+  citrus: Citrus,
+  carrot: Carrot,
+  cherry: Cherry,
+  banana: Banana,
+  egg: Egg,
+  coffee: Coffee,
+  activity: Activity,
+  dumbbell: Dumbbell,
+  brain: Brain,
+  "badge-check": BadgeCheck,
+  medal: Medal,
+  trophy: Trophy,
+  box: Box,
+  "package-check": PackageCheck,
+  droplets: Droplets,
+  octagon: Octagon,
+  shield: Shield,
 };
