@@ -40,6 +40,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   margin: 0;
@@ -1039,6 +1043,275 @@ table.review-table th {
   background: var(--accent-light);
   padding: 2px 8px;
   border-radius: 999px;
+}
+
+/* Landing page: "How it works" step cards. */
+.how-it-works-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.how-it-works-card {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 24px 20px 20px;
+}
+
+.how-it-works-number {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--line);
+}
+
+.how-it-works-icon {
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.how-it-works-card h3 {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  margin: 0 0 6px;
+  color: var(--accent-dark);
+}
+
+.how-it-works-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* Landing page: alternating feature rows with a CSS-built mockup instead
+   of a screenshot or stock photo — see FeatureHighlights.tsx. */
+.feature-row {
+  display: flex;
+  align-items: center;
+  gap: 56px;
+  padding: 40px 0;
+}
+
+.feature-row + .feature-row {
+  border-top: 1px solid var(--line);
+}
+
+.feature-row-reverse {
+  flex-direction: row-reverse;
+}
+
+.feature-row-copy {
+  flex: 1 1 360px;
+  min-width: 260px;
+}
+
+.feature-row-visual {
+  flex: 1 1 320px;
+  min-width: 260px;
+  display: flex;
+  justify-content: center;
+}
+
+.feature-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+
+.feature-row-copy h3 {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  color: var(--accent-dark);
+  margin: 0 0 12px;
+}
+
+.feature-row-copy p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+  max-width: 440px;
+}
+
+@media (max-width: 720px) {
+  .feature-row,
+  .feature-row-reverse {
+    flex-direction: column;
+    gap: 28px;
+  }
+}
+
+.feature-mockup {
+  width: 100%;
+  max-width: 340px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.feature-mockup-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* Editor mockup: a rail + canvas, echoing the real full-page editor. */
+.feature-mockup-editor {
+  display: flex;
+  height: 220px;
+}
+
+.fm-editor-rail {
+  width: 34px;
+  flex-shrink: 0;
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.fm-editor-rail span {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: var(--line);
+}
+
+.fm-editor-rail span.active {
+  background: var(--accent);
+}
+
+.fm-editor-canvas {
+  flex: 1;
+  background: var(--editor-bg);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fm-editor-toolbar {
+  height: 14px;
+  border-radius: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.fm-editor-body {
+  flex: 1;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+}
+
+.fm-editor-photo {
+  width: 40%;
+  border-radius: 6px;
+  background: var(--accent-light);
+}
+
+.fm-editor-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.fm-editor-line {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line);
+}
+
+.fm-editor-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.fm-editor-badges span {
+  width: 24px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+/* Proof mockup: echoes the real generated-proof watermark ribbon. */
+.feature-mockup-proof {
+  position: relative;
+  height: 220px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.fm-proof-ribbon {
+  position: absolute;
+  top: 38%;
+  left: -20%;
+  width: 140%;
+  text-align: center;
+  transform: rotate(-18deg);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(179, 38, 30, 0.18);
+}
+
+.fm-proof-line {
+  height: 9px;
+  border-radius: 4px;
+  background: var(--line);
+}
+
+.fm-proof-badges {
+  display: flex;
+  gap: 5px;
+}
+
+.fm-proof-badges span {
+  width: 30px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.fm-proof-panel {
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Guided customizer — photo pan/zoom sliders and font-pairing picker. */

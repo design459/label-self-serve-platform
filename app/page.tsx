@@ -1,10 +1,12 @@
 import Link from "next/link";
 import ProductPicker from "@/components/landing/ProductPicker";
+import HowItWorks from "@/components/landing/HowItWorks";
+import FeatureHighlights from "@/components/landing/FeatureHighlights";
 
 export default function HomePage() {
   return (
     <>
-      <div className="hero" style={{ minHeight: "70vh" }}>
+      <div className="hero">
         <img className="hero-bg" src="/hero/packaging-hero.png" alt="" />
         <div className="hero-scrim" />
         <nav className="corner-nav">
@@ -13,7 +15,7 @@ export default function HomePage() {
           </Link>
         </nav>
         <div className="hero-content">
-          <p className="hero-eyebrow">Label generation</p>
+          <p className="hero-eyebrow">Custom label design</p>
           <h1 className="hero-heading">
             Design your own label,
             <br />
@@ -23,9 +25,16 @@ export default function HomePage() {
             Pick your product, customize the look, and we&apos;ll handle the compliance check before it&apos;s
             print-ready.
           </p>
+          <a className="btn" href="#products">
+            Get started
+          </a>
         </div>
       </div>
-      <ProductPicker />
+      <HowItWorks />
+      <FeatureHighlights />
+      <div id="products">
+        <ProductPicker />
+      </div>
     </>
   );
 }
