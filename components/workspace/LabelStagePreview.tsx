@@ -50,6 +50,7 @@ interface Props {
   summary: Summary;
   elements: CanvasElement[];
   logoUrl: string | null;
+  imageUrls?: Record<string, string>;
   maxWidth?: number;
 }
 
@@ -61,7 +62,7 @@ interface Props {
 // an approximation (same field data, same positions, but simplified DOM
 // instead of Puppeteer/Chromium) good enough to confirm "does my saved
 // design look right" without touching the revision cap.
-export default function LabelStagePreview({ summary, elements, logoUrl, maxWidth = 480 }: Props) {
+export default function LabelStagePreview({ summary, elements, logoUrl, imageUrls = {}, maxWidth = 480 }: Props) {
   const template = summary.templates.find((t) => t.id === summary.order.selectedTemplateId) ?? summary.templates[0];
 
   const { stageW, stageH, scale } = useMemo(() => {
@@ -99,14 +100,26 @@ export default function LabelStagePreview({ summary, elements, logoUrl, maxWidth
             overflow: "hidden",
           }}
         >
-          <ElementPreview el={el} scale={scale} summary={summary} logoUrl={logoUrl} />
+          <ElementPreview el={el} scale={scale} summary={summary} logoUrl={logoUrl} imageUrls={imageUrls} />
         </div>
       ))}
     </div>
   );
 }
 
-export function ElementPreview({ el, scale, summary, logoUrl }: { el: CanvasElement; scale: number; summary: Summary; logoUrl: string | null }) {
+export function ElementPreview({
+  el,
+  scale,
+  summary,
+  logoUrl,
+  imageUrls = {},
+}: {
+  el: CanvasElement;
+  scale: number;
+  summary: Summary;
+  logoUrl: string | null;
+  imageUrls?: Record<string, string>;
+}) {
   const { order, regulatory, panel } = summary;
   const family = (fontId: string, kind: "heading" | "body") => (FONT_PRESETS.find((f) => f.id === fontId) ?? FONT_PRESETS[0])[kind];
   const px = (mm: number) => Math.max(8, mm * scale * 2.2); // approximate on-screen text size
@@ -137,6 +150,16 @@ export function ElementPreview({ el, scale, summary, logoUrl }: { el: CanvasElem
       return (
         <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: el.color }}>
           <Icon size="80%" />
+        </div>
+      );
+    }
+    case "image": {
+      const url = imageUrls[el.assetId];
+      return url ? (
+        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        <div style={{ width: "100%", height: "100%", background: "#f1efe8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span className="field-hint">Image</span>
         </div>
       );
     }

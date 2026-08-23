@@ -75,6 +75,23 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
   // app/api/workspace/[token]/layout/route.ts; no re-validation on read).
   const extraPages: CanvasElement[][] = Array.isArray(order.extra_pages) ? order.extra_pages : [];
 
+  // Signed URLs for whichever freeform "image" elements are actually
+  // placed on any page — used by read-only previews (LabelPreview,
+  // PagesPanel thumbnails) that don't otherwise call the Images tab's own
+  // /images list endpoint (CanvasEditor.tsx fetches that separately, since
+  // it also needs assets that aren't placed anywhere yet).
+  const placedImageAssetIds = Array.from(
+    new Set([elements, ...extraPages].flat().filter((el): el is Extract<CanvasElement, { type: "image" }> => el.type === "image").map((el) => el.assetId))
+  );
+  const imageUrls: Record<string, string> = {};
+  if (placedImageAssetIds.length > 0) {
+    const { data: imageAssets } = await db.from("label_assets").select("*").eq("label_order_id", order.id).eq("kind", "image").in("id", placedImageAssetIds);
+    for (const asset of imageAssets ?? []) {
+      const url = await signedUrlFor(asset.storage_path);
+      if (url) imageUrls[asset.id] = url;
+    }
+  }
+
   // True when the customer has saved layout/theme edits since the latest
   // generated proof — that proof (and whatever staff would see in review)
   // no longer matches what "Current design" shows. null canvas_layout/theme
@@ -109,6 +126,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     templates: templates ?? [],
     hasLogo: Boolean(logo),
     logoUrl,
+    imageUrls,
     regulatory: regulatory ?? null,
     panel: panel ?? null,
     canvasLayout: order.canvas_layout ?? null,

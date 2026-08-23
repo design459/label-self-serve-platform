@@ -36,7 +36,7 @@ export default function PagesPanel({ pages, summary, logoUrl, activePageIndex, m
             <div key={i} className="pages-thumb-row" onClick={() => onGoTo(i)}>
               <span className="pages-thumb-index">{i + 1}</span>
               <div className={`pages-thumb-card ${i === activePageIndex ? "selected" : ""}`}>
-                <LabelStagePreview summary={summary} elements={pageElements} logoUrl={logoUrl} maxWidth={120} />
+                <LabelStagePreview summary={summary} elements={pageElements} logoUrl={logoUrl} imageUrls={summary.imageUrls} maxWidth={120} />
               </div>
             </div>
           ))}

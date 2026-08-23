@@ -33,6 +33,10 @@ export interface ArtboardInput {
   font: FontPairing;
   elements: CanvasElement[];
   logoDataUrl?: string | null;
+  // assetId -> base64 data URL, for freeform "image" elements — never
+  // persisted (same reason as logoDataUrl below), re-fetched fresh at
+  // render time by whoever builds this input.
+  imageAssets?: Record<string, string>;
   regulatory: RegulatoryContent;
   qrDataUrl?: string | null;
   watermark: boolean;
@@ -151,6 +155,7 @@ interface RenderCtx {
   rows: string;
   skuCode: string;
   logoDataUrl?: string | null;
+  imageAssets: Record<string, string>;
   qrDataUrl?: string | null;
   font: FontPairing;
 }
@@ -241,6 +246,11 @@ function renderElement(el: CanvasElement, ctx: RenderCtx): string {
       const markup = ICON_SVG_MARKUP[el.iconId] ?? ICON_SVG_MARKUP.leaf;
       return `<div style="${rect} color:${safeColor(el.color)}; display:flex; align-items:center; justify-content:center;"><svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${markup}</svg></div>`;
     }
+    case "image": {
+      const url = ctx.imageAssets[el.assetId];
+      if (!url) return "";
+      return `<div style="${rect}"><img src="${url}" style="width:100%; height:100%; object-fit:cover;" alt="" /></div>`;
+    }
     default:
       return "";
   }
@@ -265,6 +275,7 @@ function renderSheet(input: ArtboardInput, pageBreak: boolean): string {
     rows: nutritionRows(input),
     skuCode: input.skuCode,
     logoDataUrl: input.logoDataUrl,
+    imageAssets: input.imageAssets ?? {},
     qrDataUrl: input.qrDataUrl,
     font,
   };

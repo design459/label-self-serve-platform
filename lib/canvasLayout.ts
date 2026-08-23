@@ -112,10 +112,20 @@ export interface IconElement extends ElementBase {
   color: string; // #rrggbb — no ElementStyle, icons have no font
 }
 
-export type CanvasElement = PhotoElement | BoundTextElement | ClaimsElement | FreeTextElement | IconElement;
+// A customer-uploaded image placed freely on the canvas — distinct from
+// PhotoElement (the one required "product photo" bound slot). assetId
+// points at a label_assets row (kind: "image"); the renderer resolves the
+// actual file server-side (lib/renderOrderPdf.ts, generate/route.ts), same
+// pattern as the logo. No style — an image has nothing to font/color.
+export interface ImageElement extends ElementBase {
+  type: "image";
+  assetId: string;
+}
+
+export type CanvasElement = PhotoElement | BoundTextElement | ClaimsElement | FreeTextElement | IconElement | ImageElement;
 
 export function isDeletable(el: CanvasElement): boolean {
-  return el.type === "text" || el.type === "icon";
+  return el.type === "text" || el.type === "icon" || el.type === "image";
 }
 
 export function describeElement(el: CanvasElement): string {
@@ -138,6 +148,8 @@ export function describeElement(el: CanvasElement): string {
       return "Footer";
     case "icon":
       return `Icon: ${el.iconId}`;
+    case "image":
+      return "Image";
     case "text":
       return `Text: ${el.content.slice(0, 24)}${el.content.length > 24 ? "…" : ""}`;
     default:
@@ -526,6 +538,13 @@ export function validateCanvasElements(
         iconId: safeIconId(el.iconId),
         color: safeHex(el.color, "#1b2430"),
       });
+    } else if (type === "image") {
+      // Existence isn't checked here (this function has no DB access) —
+      // an assetId that doesn't resolve to a real label_assets row just
+      // renders nothing (see lib/artboard.ts's "image" case), same as a
+      // missing logo does for the photo element.
+      if (typeof el.assetId !== "string" || !el.assetId) continue;
+      validated.push({ ...base, type: "image", assetId: el.assetId });
     } else if (type === "text") {
       const style = (el.style ?? {}) as Record<string, unknown>;
       validated.push({

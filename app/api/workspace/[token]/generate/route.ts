@@ -6,6 +6,7 @@ import { buildDefaultLayout, CanvasElement } from "@/lib/canvasLayout";
 import { generateQrDataUrl } from "@/lib/labelCodes";
 import { launchBrowser } from "@/lib/launchBrowser";
 import { resizeForEmbedding } from "@/lib/resizeImage";
+import { fetchImageAssets } from "@/lib/renderOrderPdf";
 import { CategoryPanelTemplate, FONT_PRESETS, PackFormatTemplate, RegulatoryContent, Theme } from "@/lib/types";
 import { safeGradientStops } from "@/lib/canvasLayout";
 import { apiCatch } from "@/lib/apiError";
@@ -124,6 +125,9 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
         };
 
     const qrDataUrl = await generateQrDataUrl(reg.batch_code || order.sku_code);
+    // Only the on-screen proof needs full resolution here — 600px matches
+    // the same cap logoDataUrl already uses above.
+    const imageAssets = await fetchImageAssets(order.id, allPagesElements, 600);
 
     const renderInput: Omit<ArtboardInput, "watermark"> = {
       productName: order.product_name || order.sku_code,
@@ -139,6 +143,7 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       font,
       elements,
       logoDataUrl,
+      imageAssets,
       regulatory: reg,
       qrDataUrl,
     };
@@ -229,7 +234,7 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       .from("label_designs")
       .update({
         theme,
-        render_input: { ...renderInput, logoDataUrl: null },
+        render_input: { ...renderInput, logoDataUrl: null, imageAssets: {} },
         extra_pages_elements: extraPagesElements,
         proof_storage_path: proofPaths[0],
         proof_storage_paths: proofPaths,

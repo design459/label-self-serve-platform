@@ -132,8 +132,25 @@ export default function CanvasEditor({
   const [layersMenuOpen, setLayersMenuOpen] = useState(false);
   const [effectsMenuOpen, setEffectsMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const stageColRef = useRef<HTMLDivElement | null>(null);
   const [availableWidth, setAvailableWidth] = useState(STAGE_MAX_WIDTH);
+
+  // The customer's freeform image library (Images tab) — separate from the
+  // one required "product photo" slot (logoUrl, above). Fetched once on
+  // mount; a successful upload appends to this list directly rather than
+  // re-fetching.
+  const [images, setImages] = useState<{ id: string; url: string }[]>([]);
+  const [imageUploading, setImageUploading] = useState(false);
+  const imageUrlMap = useMemo(() => Object.fromEntries(images.map((i) => [i.id, i.url])), [images]);
+
+  useEffect(() => {
+    fetch(`/api/workspace/${token}/images`)
+      .then((res) => (res.ok ? res.json() : { images: [] }))
+      .then((data) => setImages(data.images ?? []))
+      .catch(() => setImages([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   // The label used to be capped at a fixed 640px regardless of how much
   // room the editor actually had, leaving a lot of the workspace empty on
@@ -266,6 +283,25 @@ export default function CanvasEditor({
     if (res.ok) onLogoUploaded();
   }
 
+  async function uploadImage(file: File) {
+    setImageUploading(true);
+    const form = new FormData();
+    form.append("image", file);
+    const res = await fetch(`/api/workspace/${token}/images`, { method: "POST", body: form });
+    const data = await res.json().catch(() => null);
+    setImageUploading(false);
+    if (res.ok && data?.id && data?.url) setImages((cur) => [{ id: data.id, url: data.url }, ...cur]);
+  }
+
+  function addImage(assetId: string) {
+    // Square-ish box like addIcon, sized from the sheet's mm aspect ratio.
+    const wPct = 30;
+    const hPct = wPct * (widthMm / heightMm);
+    const el: CanvasElement = { id: randomId(), type: "image", x: 35, y: 35, w: wPct, h: hPct, assetId };
+    onElementsChange([...elements, el]);
+    onSelectedIdChange(el.id);
+  }
+
   const selected = elements.find((e) => e.id === selectedId) ?? null;
 
   function toggleTab(tab: "text" | "icons" | "templates" | "photo" | "background") {
@@ -289,7 +325,7 @@ export default function CanvasEditor({
         </button>
         <button type="button" className={`editor-rail-tab ${activeTab === "photo" ? "active" : ""}`} onClick={() => toggleTab("photo")}>
           <ImagePlus size={20} />
-          <span>Logo</span>
+          <span>Images</span>
         </button>
         <button type="button" className={`editor-rail-tab ${activeTab === "background" ? "active" : ""}`} onClick={() => toggleTab("background")}>
           <PaintBucket size={20} />
@@ -331,10 +367,35 @@ export default function CanvasEditor({
           )}
           {activeTab === "photo" && (
             <>
-              <p className="wizard-section-label">Logo</p>
+              <p className="wizard-section-label">Images</p>
+              <p className="field-hint" style={{ marginBottom: 8 }}>Product photo</p>
               <button type="button" className="btn btn-block" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
                 {uploading ? "Uploading…" : logoUrl ? "Replace logo" : "Upload a logo"}
               </button>
+
+              <p className="field-hint" style={{ marginTop: 20, marginBottom: 8 }}>Your images</p>
+              <div
+                className="image-dropzone"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) uploadImage(file);
+                }}
+                onClick={() => !imageUploading && imageInputRef.current?.click()}
+              >
+                {imageUploading ? "Uploading…" : "Drag & drop or click to upload"}
+              </div>
+
+              {images.length > 0 && (
+                <div className="template-grid image-library-grid">
+                  {images.map((img) => (
+                    <button key={img.id} type="button" className="image-library-thumb" title="Add to canvas" onClick={() => addImage(img.id)}>
+                      <img src={img.url} alt="" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </>
           )}
           {activeTab === "background" && (
@@ -374,6 +435,8 @@ export default function CanvasEditor({
                 title="Icon color"
                 onChange={(e) => updateElement(selected.id, { color: e.target.value } as Partial<CanvasElement>, true)}
               />
+            ) : selected.type === "image" ? (
+              <span className="field-hint">Image</span>
             ) : (
               <>
                 <select
@@ -737,7 +800,7 @@ export default function CanvasEditor({
                 }}
                 onMouseDown={() => onSelectedIdChange(el.id)}
               >
-                <ElementPreview el={el} scale={dispScale} summary={summary} logoUrl={logoUrl} />
+                <ElementPreview el={el} scale={dispScale} summary={summary} logoUrl={logoUrl} imageUrls={imageUrlMap} />
               </Rnd>
             );
           })}
@@ -759,6 +822,13 @@ export default function CanvasEditor({
           accept="image/png,image/jpeg,image/webp,image/svg+xml"
           style={{ display: "none" }}
           onChange={(e) => e.target.files?.[0] && uploadPhoto(e.target.files[0])}
+        />
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          style={{ display: "none" }}
+          onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])}
         />
 
         {selected && (selected.type === "text" || selected.type === "icon") && (

@@ -58,7 +58,7 @@ export default function LabelPreview({ token, summary, theme, onGenerated }: Pro
                     Page {i + 1} of {summary.pageCount}
                   </p>
                 )}
-                <LabelStagePreview summary={summary} elements={pageElements} logoUrl={summary.logoUrl} maxWidth={480} />
+                <LabelStagePreview summary={summary} elements={pageElements} logoUrl={summary.logoUrl} imageUrls={summary.imageUrls} maxWidth={480} />
               </div>
             ))}
           </div>

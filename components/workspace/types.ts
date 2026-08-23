@@ -37,6 +37,7 @@ export interface Summary {
   templates: PackFormatTemplate[];
   hasLogo: boolean;
   logoUrl: string | null;
+  imageUrls: Record<string, string>;
   regulatory: {
     ingredients: string | null;
     claims: string | null;
