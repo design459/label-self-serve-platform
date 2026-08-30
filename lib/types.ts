@@ -12,7 +12,19 @@ export type LabelOrderStatus = "draft" | "in_progress" | "submitted" | "approved
 // Product type — orthogonal to PackFormat (physical packaging). Drives
 // which nutrition/supplement panel field set applies. See
 // supabase/migrations/0003_customer_self_serve.sql.
-export type ProductCategory = "capsule_tablet" | "powder" | "juice_beverage" | "bar" | "spread" | "other";
+export type ProductCategory =
+  | "capsule_tablet"
+  | "powder"
+  | "juice_beverage"
+  | "bar"
+  | "spread"
+  | "sachet"
+  | "box"
+  | "stick_pack"
+  | "tube"
+  | "dropper_bottle"
+  | "spray_bottle"
+  | "other";
 
 export const PRODUCT_CATEGORIES: ProductCategory[] = [
   "capsule_tablet",
@@ -20,6 +32,12 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   "juice_beverage",
   "bar",
   "spread",
+  "sachet",
+  "box",
+  "stick_pack",
+  "tube",
+  "dropper_bottle",
+  "spray_bottle",
   "other",
 ];
 
@@ -29,6 +47,12 @@ export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   juice_beverage: "Juice / Beverage",
   bar: "Bar",
   spread: "Spread",
+  sachet: "Sachet",
+  box: "Box",
+  stick_pack: "Stick Pack",
+  tube: "Tube",
+  dropper_bottle: "Dropper Bottle",
+  spray_bottle: "Spray Bottle",
   other: "Other",
 };
 
@@ -187,6 +211,15 @@ export interface LabelOrder {
   selected_template_id: string | null;
   theme: Theme | null;
   created_at: string;
+  // Set when the customer submits for review (app/api/workspace/[token]/submit).
+  // Null until then — see lib/qaSla.ts, which is the only place this is read.
+  submitted_at: string | null;
+}
+
+export interface QaSlaPolicy {
+  sla_hours: number | null;
+  miss_action: string | null;
+  updated_at: string;
 }
 
 export interface LabelDesign {
