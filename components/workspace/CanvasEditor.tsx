@@ -457,6 +457,7 @@ export default function CanvasEditor({
               <LayoutVariantPicker
                 token={token}
                 category={order.category}
+                productName={order.displayName || order.productName}
                 apply={false}
                 onApplied={(els) => onElementsChange(els)}
                 onThemeChange={(patch) => onThemeChange(patch)}

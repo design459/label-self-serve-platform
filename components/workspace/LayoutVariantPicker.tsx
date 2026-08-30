@@ -4,10 +4,12 @@ import { useState } from "react";
 import { CanvasElement, LABEL_TEMPLATES, LabelTemplate } from "@/lib/canvasLayout";
 import { ProductCategory } from "@/lib/types";
 import { safeJson } from "./types";
+import TemplateMockupPreview from "./TemplateMockupPreview";
 
 interface Props {
   token: string;
   category: ProductCategory;
+  productName: string;
   onApplied: (elements: CanvasElement[]) => void;
   // Only meaningful when apply is false (the full-page editor's Templates
   // tab) — background color is customer-editable there, so a picked
@@ -33,9 +35,14 @@ interface Props {
 // editor canvas takes over. Distinct from LAYOUT_VARIANTS (which this also
 // applies under the hood): a template additionally sets the order's font
 // and theme colors.
-export default function LayoutVariantPicker({ token, category, onApplied, onThemeChange, apply: applyImmediately = true }: Props) {
+export default function LayoutVariantPicker({ token, category, productName, onApplied, onThemeChange, apply: applyImmediately = true }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The last successfully-applied template, purely to drive
+  // TemplateMockupPreview below — not persisted, resets on remount (e.g.
+  // navigating away and back), since it's a "just picked" confirmation, not
+  // a record of the order's actual current theme.
+  const [appliedTemplate, setAppliedTemplate] = useState<LabelTemplate | null>(null);
   // "other" has no defined product shape, and a category with no matching
   // template (shouldn't happen for the 11 defined ones, but a future new
   // category would otherwise show nothing) both fall back to the full list
@@ -55,6 +62,7 @@ export default function LayoutVariantPicker({ token, category, onApplied, onThem
     setBusy(null);
     if (!res.ok) return setError(data?.error || "Couldn't apply that template.");
     onApplied(data.elements);
+    setAppliedTemplate(t);
     if (onThemeChange && data.backgroundColor) {
       onThemeChange({ backgroundColor: data.backgroundColor, backgroundType: "color", backgroundGradient: null });
     }
@@ -62,6 +70,7 @@ export default function LayoutVariantPicker({ token, category, onApplied, onThem
 
   return (
     <div className="field">
+      {appliedTemplate && <TemplateMockupPreview template={appliedTemplate} productName={productName} />}
       <label>Pick a starting template</label>
       {error && <div className="error-box">{error}</div>}
       <div className="template-gallery">

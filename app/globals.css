@@ -393,6 +393,41 @@ textarea {
   display: block;
 }
 
+/* The just-applied template's "how it'll look on the shelf" live preview
+   (TemplateMockupPreview.tsx) — the order's real product name overlaid on
+   the template's reference photo, roughly positioned over the container's
+   visible label area. Not the real print artwork (see that component's own
+   comment) — purely a shelf-mockup stand-in. */
+.template-mockup-preview {
+  margin-bottom: 16px;
+}
+
+.template-mockup-photo {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 4 / 5;
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.template-mockup-overlay {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.15;
+  font-size: clamp(10px, 3.4vw, 16px);
+  overflow: hidden;
+  padding: 2px;
+  word-break: break-word;
+}
+
 .palette-row {
   display: flex;
   gap: 10px;
