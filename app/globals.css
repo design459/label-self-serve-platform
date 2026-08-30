@@ -414,17 +414,25 @@ textarea {
   box-shadow: var(--shadow-card);
 }
 
+/* A solid backing card masking the photo's own baked-in "PRODUCT NAME"
+   placeholder text at this exact spot, so the real overlaid text (below)
+   reads cleanly instead of double-exposing over it. */
 .template-mockup-overlay {
   position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  padding: 3px 6px;
+}
+
+.template-mockup-overlay-text {
   text-align: center;
   font-weight: 700;
   line-height: 1.15;
-  font-size: clamp(10px, 3.4vw, 16px);
-  overflow: hidden;
-  padding: 2px;
   word-break: break-word;
 }
 
