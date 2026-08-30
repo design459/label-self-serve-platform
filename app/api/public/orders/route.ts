@@ -7,7 +7,7 @@ import { apiCatch } from "@/lib/apiError";
 // Fixed for every public self-serve order — not client-controlled, unlike
 // the staff form's revisionLimit field, to prevent cap-inflation abuse from
 // an endpoint that requires no authentication at all.
-const PUBLIC_REVISION_LIMIT = 5;
+const PUBLIC_REVISION_LIMIT = 3;
 const MAX_ORDERS_PER_IP_PER_HOUR = 5;
 const MIN_FORM_FILL_MS = 3000;
 
