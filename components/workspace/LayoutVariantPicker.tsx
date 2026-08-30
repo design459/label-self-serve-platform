@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CanvasElement, LABEL_TEMPLATES, LabelTemplate } from "@/lib/canvasLayout";
-import { safeJson } from "./types";
+import { Summary, safeJson } from "./types";
+import LabelStagePreview from "./LabelStagePreview";
 
 interface Props {
   token: string;
+  summary: Summary;
   onApplied: (elements: CanvasElement[]) => void;
   // Only meaningful when apply is false (the full-page editor's Templates
   // tab) — background color is customer-editable there, so a picked
@@ -21,27 +23,23 @@ interface Props {
 }
 
 // A visual "template" gallery — real combinations of layout, font, and
-// color (see lib/canvasLayout.ts's LABEL_TEMPLATES) previewed with a small
-// CSS-built mockup of each, not a screenshot or stock image. Distinct from
-// LAYOUT_VARIANTS (which this also applies under the hood): a template
-// additionally sets the order's font and theme colors.
-function TemplateThumbnail({ t }: { t: LabelTemplate }) {
-  return (
-    <div className="template-thumb" style={{ background: t.backgroundColor }}>
-      <div className={`template-thumb-inner template-thumb-${t.variant}`}>
-        <div className="template-thumb-photo" style={{ background: `${t.accentColor}33` }} />
-        <div className="template-thumb-text">
-          <div className="template-thumb-name" style={{ background: t.primaryColor }} />
-          <div className="template-thumb-tagline" style={{ background: t.accentColor }} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function LayoutVariantPicker({ token, onApplied, onThemeChange, apply: applyImmediately = true }: Props) {
+// color (see lib/canvasLayout.ts's LABEL_TEMPLATES). Each card previews
+// the customer's OWN real product data (name, ingredients, uploaded photo,
+// ...) arranged in that template — not a stock mockup or an abstract
+// placeholder sketch — fetched once from layout-variant/preview/route.ts.
+// Distinct from LAYOUT_VARIANTS (which this also applies under the hood):
+// a template additionally sets the order's font and theme colors.
+export default function LayoutVariantPicker({ token, summary, onApplied, onThemeChange, apply: applyImmediately = true }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<Record<string, CanvasElement[]>>({});
+
+  useEffect(() => {
+    fetch(`/api/workspace/${token}/layout-variant/preview`)
+      .then((res) => (res.ok ? res.json() : { templates: {} }))
+      .then((data) => setPreviews(data.templates ?? {}))
+      .catch(() => setPreviews({}));
+  }, [token]);
 
   async function apply(t: LabelTemplate) {
     setBusy(t.id);
@@ -73,7 +71,19 @@ export default function LayoutVariantPicker({ token, onApplied, onThemeChange, a
             disabled={busy !== null}
             onClick={() => apply(t)}
           >
-            <TemplateThumbnail t={t} />
+            <div className="template-thumb" style={{ background: t.backgroundColor }}>
+              {previews[t.id] ? (
+                <LabelStagePreview
+                  summary={summary}
+                  elements={previews[t.id]}
+                  logoUrl={summary.logoUrl}
+                  imageUrls={summary.imageUrls}
+                  maxWidth={100}
+                />
+              ) : (
+                <div className="template-thumb-loading" />
+              )}
+            </div>
             <p className="template-gallery-name">{busy === t.id ? "Applying…" : t.name}</p>
           </button>
         ))}
