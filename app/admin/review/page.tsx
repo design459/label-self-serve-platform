@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseServer";
 import AdminNav from "@/components/admin/AdminNav";
 import ConfigNotice from "@/components/admin/ConfigNotice";
 import ReviewQueueTables from "@/components/admin/ReviewQueueTables";
+import RegulationDocsManager from "@/components/admin/RegulationDocsManager";
 import { LabelOrder } from "@/lib/types";
 
 export default async function ReviewQueuePage() {
@@ -24,6 +25,8 @@ export default async function ReviewQueuePage() {
         <div className="wizard-page-header">
           <h1>Management Dashboard</h1>
         </div>
+
+        <RegulationDocsManager />
 
         <ReviewQueueTables orders={(orders ?? []) as LabelOrder[]} />
       </div>

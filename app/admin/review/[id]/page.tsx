@@ -4,6 +4,7 @@ import { supabaseAdmin, signedUrlFor } from "@/lib/supabaseServer";
 import AdminNav from "@/components/admin/AdminNav";
 import ConfigNotice from "@/components/admin/ConfigNotice";
 import ReviewActions from "@/components/admin/ReviewActions";
+import QaReview from "@/components/admin/QaReview";
 import { LabelOrder } from "@/lib/types";
 
 export default async function ReviewDetailPage({ params }: { params: { id: string } }) {
@@ -88,6 +89,8 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
             <p>No proof has been generated yet.</p>
           )}
         </div>
+
+        <QaReview orderId={o.id} />
 
         <ReviewActions orderId={o.id} disabled={o.status !== "submitted"} />
 

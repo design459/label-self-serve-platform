@@ -222,6 +222,18 @@ export interface QaSlaPolicy {
   updated_at: string;
 }
 
+// A staff-uploaded regulation PDF (see supabase/migrations/
+// 0011_label_regulation_documents.sql) — global reference material for the
+// Quality Assurance (QA) Review compliance check, not tied to any order.
+export interface LabelRegulationDocument {
+  id: string;
+  file_name: string;
+  storage_path: string;
+  size_bytes: number;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
 export interface LabelDesign {
   id: string;
   label_order_id: string;

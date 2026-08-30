@@ -1332,6 +1332,35 @@ table.review-table th {
   line-height: 1.5;
 }
 
+.site-footer-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.site-footer-contact-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.site-footer-contact a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+}
+
+.site-footer-contact a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.site-footer-contact p {
+  margin: 0;
+  max-width: 260px;
+  line-height: 1.5;
+}
+
 .site-footer-links {
   display: flex;
   gap: 24px;
