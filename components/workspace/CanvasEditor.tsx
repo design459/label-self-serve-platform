@@ -456,7 +456,6 @@ export default function CanvasEditor({
               <p className="wizard-section-label">Templates</p>
               <LayoutVariantPicker
                 token={token}
-                summary={summary}
                 apply={false}
                 onApplied={(els) => onElementsChange(els)}
                 onThemeChange={(patch) => onThemeChange(patch)}

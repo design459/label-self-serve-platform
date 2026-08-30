@@ -376,27 +376,21 @@ textarea {
   border-top: 1px solid var(--line);
 }
 
-/* Each card renders a real, small-scale LabelStagePreview of the
-   customer's OWN data in that template (see LayoutVariantPicker.tsx) —
-   every card uses the order's own physical template size, so they all
-   share one aspect ratio and need no fixed/forced height here. */
+/* Each card shows a static, photorealistic reference photo for that
+   template's style (see LabelTemplate.previewImage in canvasLayout.ts) —
+   a fixed 4:5 box since these are stock-shaped mockup photos, not a
+   render of the order's own physical template size. */
 .template-thumb {
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
+  aspect-ratio: 4 / 5;
   overflow: hidden;
 }
 
-.template-thumb .canvas-stage {
-  pointer-events: none;
-}
-
-.template-thumb-loading {
+.template-thumb img {
   width: 100%;
-  height: 60px;
-  border-radius: 6px;
-  background: var(--line);
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .palette-row {

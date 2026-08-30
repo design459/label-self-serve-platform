@@ -527,6 +527,15 @@ export interface LabelTemplate {
   primaryColor: string;
   accentColor: string;
   backgroundColor: string;
+  // A static, photorealistic reference photo (public/template-previews/) —
+  // shows the style's color/font/mood via a representative product mockup,
+  // not this specific order's real data. Deliberately NOT computed from the
+  // order at request time (unlike the actual editor canvas, which always
+  // renders real product data): a live render of every bound field crammed
+  // into a ~130px picker thumbnail reads as illegible clutter rather than a
+  // label. The real per-order text still renders correctly the moment a
+  // template is applied and the actual canvas takes over.
+  previewImage: string;
 }
 
 // A small "template" gallery: real combinations of an existing layout
@@ -535,13 +544,13 @@ export interface LabelTemplate {
 // Picking one only re-arranges/re-styles the customer's own real data,
 // same compliance boundary as buildDefaultLayout below.
 export const LABEL_TEMPLATES: LabelTemplate[] = [
-  { id: "classic-forest", name: "Classic Forest", variant: "classic", fontId: "sans-modern", primaryColor: "#1f4d38", accentColor: "#2e6b4f", backgroundColor: "#ffffff" },
-  { id: "photo-ocean", name: "Photo Focus Blue", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#1d4ed8", accentColor: "#60a5fa", backgroundColor: "#ffffff" },
-  { id: "centered-sunset", name: "Centered Sunset", variant: "centered", fontId: "serif-classic", primaryColor: "#9a3412", accentColor: "#f97316", backgroundColor: "#fffaf5" },
-  { id: "classic-plum", name: "Classic Plum", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#a78bfa", backgroundColor: "#ffffff" },
-  { id: "photo-slate", name: "Photo Focus Slate", variant: "photo-focus", fontId: "mono-technical", primaryColor: "#1e293b", accentColor: "#64748b", backgroundColor: "#f8fafc" },
-  { id: "centered-rose", name: "Centered Rose", variant: "centered", fontId: "sans-modern", primaryColor: "#701a75", accentColor: "#d946ef", backgroundColor: "#fdf4ff" },
-  { id: "vintage-kraft", name: "Vintage Kraft", variant: "centered", fontId: "serif-classic", primaryColor: "#5a3a22", accentColor: "#b5651d", backgroundColor: "#f3e9d2" },
+  { id: "classic-forest", name: "Classic Forest", variant: "classic", fontId: "sans-modern", primaryColor: "#1f4d38", accentColor: "#2e6b4f", backgroundColor: "#ffffff", previewImage: "/template-previews/classic-forest.webp" },
+  { id: "photo-ocean", name: "Photo Focus Blue", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#1d4ed8", accentColor: "#60a5fa", backgroundColor: "#ffffff", previewImage: "/template-previews/photo-ocean.webp" },
+  { id: "centered-sunset", name: "Centered Sunset", variant: "centered", fontId: "serif-classic", primaryColor: "#9a3412", accentColor: "#f97316", backgroundColor: "#fffaf5", previewImage: "/template-previews/centered-sunset.webp" },
+  { id: "classic-plum", name: "Classic Plum", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#a78bfa", backgroundColor: "#ffffff", previewImage: "/template-previews/classic-plum.webp" },
+  { id: "photo-slate", name: "Photo Focus Slate", variant: "photo-focus", fontId: "mono-technical", primaryColor: "#1e293b", accentColor: "#64748b", backgroundColor: "#f8fafc", previewImage: "/template-previews/photo-slate.webp" },
+  { id: "centered-rose", name: "Centered Rose", variant: "centered", fontId: "sans-modern", primaryColor: "#701a75", accentColor: "#d946ef", backgroundColor: "#fdf4ff", previewImage: "/template-previews/centered-rose.webp" },
+  { id: "vintage-kraft", name: "Vintage Kraft", variant: "centered", fontId: "serif-classic", primaryColor: "#5a3a22", accentColor: "#b5651d", backgroundColor: "#f3e9d2", previewImage: "/template-previews/vintage-kraft.webp" },
 
   // Eleven more, one per product category (see the Higgsfield mockup round
   // this session — styled/colored to match each one). `variant` still
@@ -550,17 +559,17 @@ export const LABEL_TEMPLATES: LabelTemplate[] = [
   // unused (those bypass variant by category, not by which preset was
   // picked — see buildDefaultLayout) but still lets these same presets work
   // normally if picked on an order of a different category.
-  { id: "classic-teal", name: "Ayurvedic Teal", variant: "classic", fontId: "sans-modern", primaryColor: "#084c40", accentColor: "#1f4d38", backgroundColor: "#f7f5ef" },
-  { id: "photo-terracotta", name: "Terracotta Powder", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#8a4a1f", accentColor: "#c2703d", backgroundColor: "#f7f5ef" },
-  { id: "centered-citrus", name: "Citrus Splash", variant: "centered", fontId: "sans-modern", primaryColor: "#b5651d", accentColor: "#e2a63b", backgroundColor: "#ffffff" },
-  { id: "classic-cocoa", name: "Cocoa Bar", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4226", accentColor: "#a8763e", backgroundColor: "#f7f5ef" },
-  { id: "spread-honey", name: "Golden Honey Spread", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4a1f", accentColor: "#c2703d", backgroundColor: "#f3e9d2" },
-  { id: "classic-sage", name: "Sage Sachet", variant: "classic", fontId: "sans-modern", primaryColor: "#3f5c3c", accentColor: "#7a9b76", backgroundColor: "#f7f5ef" },
-  { id: "classic-deepplum", name: "Deep Plum Box", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#701a75", backgroundColor: "#f7f5ef" },
-  { id: "narrow-electrolyte", name: "Electrolyte Blue", variant: "classic", fontId: "mono-technical", primaryColor: "#1e3a8a", accentColor: "#2f6fea", backgroundColor: "#ffffff" },
-  { id: "narrow-mint", name: "Mint Topical", variant: "classic", fontId: "sans-modern", primaryColor: "#5c7a58", accentColor: "#a8c3a0", backgroundColor: "#ffffff" },
-  { id: "narrow-botanical", name: "Botanical Drops", variant: "classic", fontId: "serif-classic", primaryColor: "#1f4d38", accentColor: "#8a6f3d", backgroundColor: "#f7f5ef" },
-  { id: "narrow-rosewater", name: "Rosewater Spray", variant: "classic", fontId: "sans-modern", primaryColor: "#8a4a52", accentColor: "#c97b84", backgroundColor: "#ffffff" },
+  { id: "classic-teal", name: "Ayurvedic Teal", variant: "classic", fontId: "sans-modern", primaryColor: "#084c40", accentColor: "#1f4d38", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-teal.webp" },
+  { id: "photo-terracotta", name: "Terracotta Powder", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#8a4a1f", accentColor: "#c2703d", backgroundColor: "#f7f5ef", previewImage: "/template-previews/photo-terracotta.webp" },
+  { id: "centered-citrus", name: "Citrus Splash", variant: "centered", fontId: "sans-modern", primaryColor: "#b5651d", accentColor: "#e2a63b", backgroundColor: "#ffffff", previewImage: "/template-previews/centered-citrus.webp" },
+  { id: "classic-cocoa", name: "Cocoa Bar", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4226", accentColor: "#a8763e", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-cocoa.webp" },
+  { id: "spread-honey", name: "Golden Honey Spread", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4a1f", accentColor: "#c2703d", backgroundColor: "#f3e9d2", previewImage: "/template-previews/spread-honey.webp" },
+  { id: "classic-sage", name: "Sage Sachet", variant: "classic", fontId: "sans-modern", primaryColor: "#3f5c3c", accentColor: "#7a9b76", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-sage.webp" },
+  { id: "classic-deepplum", name: "Deep Plum Box", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#701a75", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-deepplum.webp" },
+  { id: "narrow-electrolyte", name: "Electrolyte Blue", variant: "classic", fontId: "mono-technical", primaryColor: "#1e3a8a", accentColor: "#2f6fea", backgroundColor: "#ffffff", previewImage: "/template-previews/narrow-electrolyte.webp" },
+  { id: "narrow-mint", name: "Mint Topical", variant: "classic", fontId: "sans-modern", primaryColor: "#5c7a58", accentColor: "#a8c3a0", backgroundColor: "#ffffff", previewImage: "/template-previews/narrow-mint.webp" },
+  { id: "narrow-botanical", name: "Botanical Drops", variant: "classic", fontId: "serif-classic", primaryColor: "#1f4d38", accentColor: "#8a6f3d", backgroundColor: "#f7f5ef", previewImage: "/template-previews/narrow-botanical.webp" },
+  { id: "narrow-rosewater", name: "Rosewater Spray", variant: "classic", fontId: "sans-modern", primaryColor: "#8a4a52", accentColor: "#c97b84", backgroundColor: "#ffffff", previewImage: "/template-previews/narrow-rosewater.webp" },
 ];
 
 function defaultRectFor(type: BoundElementType, fallback: CanvasElement[]): CanvasElement {
