@@ -14,7 +14,13 @@ export async function GET() {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ categories: data ?? [] });
+    // "Other" (the blank-canvas catch-all) reads as a fallback, not a
+    // product type alongside Bar/Powder/etc. — kept alphabetical order for
+    // everything else, but always rendered last regardless of where its
+    // label would otherwise sort.
+    const categories = (data ?? []).slice().sort((a, b) => (a.category === "other" ? 1 : b.category === "other" ? -1 : 0));
+
+    return NextResponse.json({ categories });
   } catch (err) {
     return apiCatch(err);
   }
