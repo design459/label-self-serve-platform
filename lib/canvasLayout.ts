@@ -522,54 +522,122 @@ export const LAYOUT_VARIANTS: { id: LayoutVariant; label: string; description: s
 export interface LabelTemplate {
   id: string;
   name: string;
+  // Which product category's real shape this template's previewImage
+  // depicts (a capsule bottle, a dropper bottle, ...) — the picker only
+  // ever shows an order the templates that match its own category, so a
+  // customer never sees a bottle mockup while designing a box label. Every
+  // template is tied to exactly one category; there is no cross-category
+  // sharing even where two categories' real containers look similar.
+  category: ProductCategory;
   variant: LayoutVariant;
   fontId: string;
   primaryColor: string;
   accentColor: string;
   backgroundColor: string;
   // A static, photorealistic reference photo (public/template-previews/) —
-  // shows the style's color/font/mood via a representative product mockup,
-  // not this specific order's real data. Deliberately NOT computed from the
-  // order at request time (unlike the actual editor canvas, which always
-  // renders real product data): a live render of every bound field crammed
-  // into a ~130px picker thumbnail reads as illegible clutter rather than a
-  // label. The real per-order text still renders correctly the moment a
-  // template is applied and the actual canvas takes over.
+  // shows the style's color/font/mood via a representative product mockup
+  // in the order's own real category shape, not this specific order's real
+  // data. Deliberately NOT computed from the order at request time (unlike
+  // the actual editor canvas, which always renders real product data): a
+  // live render of every bound field crammed into a ~130px picker thumbnail
+  // reads as illegible clutter rather than a label. The real per-order text
+  // still renders correctly the moment a template is applied and the actual
+  // canvas takes over.
   previewImage: string;
 }
 
-// A small "template" gallery: real combinations of an existing layout
-// variant, font pairing, and color pair (the exact same colors as
-// THEME_PRESETS in lib/types.ts) — not new invented designs or content.
-// Picking one only re-arranges/re-styles the customer's own real data,
-// same compliance boundary as buildDefaultLayout below.
+// A "template" gallery: five style variants per product category (see the
+// Higgsfield mockup rounds this session), each a real combination of an
+// existing layout variant, font pairing, and color pair (the exact same
+// colors THEME_PRESETS in lib/types.ts draws from) — not new invented
+// designs or content. Picking one only re-arranges/re-styles the
+// customer's own real data, same compliance boundary as buildDefaultLayout
+// below. `variant` only actually changes the layout for the six categories
+// that use the classic/photo-focus/centered system (capsule_tablet,
+// powder, juice_beverage, bar, sachet, box); for spread and the four
+// NARROW_CATEGORIES it's inert (buildDefaultLayout bypasses variant by
+// category for those — see below) but still carries a value for type
+// simplicity. Grouped by category, five per group, in PRODUCT_CATEGORIES
+// order (see lib/types.ts) — "other" has no defined product shape so it
+// isn't given its own set; LayoutVariantPicker falls back to showing every
+// template for that category.
 export const LABEL_TEMPLATES: LabelTemplate[] = [
-  { id: "classic-forest", name: "Classic Forest", variant: "classic", fontId: "sans-modern", primaryColor: "#1f4d38", accentColor: "#2e6b4f", backgroundColor: "#ffffff", previewImage: "/template-previews/classic-forest.webp" },
-  { id: "photo-ocean", name: "Photo Focus Blue", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#1d4ed8", accentColor: "#60a5fa", backgroundColor: "#ffffff", previewImage: "/template-previews/photo-ocean.webp" },
-  { id: "centered-sunset", name: "Centered Sunset", variant: "centered", fontId: "serif-classic", primaryColor: "#9a3412", accentColor: "#f97316", backgroundColor: "#fffaf5", previewImage: "/template-previews/centered-sunset.webp" },
-  { id: "classic-plum", name: "Classic Plum", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#a78bfa", backgroundColor: "#ffffff", previewImage: "/template-previews/classic-plum.webp" },
-  { id: "photo-slate", name: "Photo Focus Slate", variant: "photo-focus", fontId: "mono-technical", primaryColor: "#1e293b", accentColor: "#64748b", backgroundColor: "#f8fafc", previewImage: "/template-previews/photo-slate.webp" },
-  { id: "centered-rose", name: "Centered Rose", variant: "centered", fontId: "sans-modern", primaryColor: "#701a75", accentColor: "#d946ef", backgroundColor: "#fdf4ff", previewImage: "/template-previews/centered-rose.webp" },
-  { id: "vintage-kraft", name: "Vintage Kraft", variant: "centered", fontId: "serif-classic", primaryColor: "#5a3a22", accentColor: "#b5651d", backgroundColor: "#f3e9d2", previewImage: "/template-previews/vintage-kraft.webp" },
+  // capsule_tablet
+  { id: "capsule-forest", name: "Capsule — Forest", category: "capsule_tablet", variant: "classic", fontId: "sans-modern", primaryColor: "#1f4d38", accentColor: "#2e6b4f", backgroundColor: "#ffffff", previewImage: "/template-previews/classic-forest.webp" },
+  { id: "capsule-ocean", name: "Capsule — Ocean", category: "capsule_tablet", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#1d4ed8", accentColor: "#60a5fa", backgroundColor: "#ffffff", previewImage: "/template-previews/photo-ocean.webp" },
+  { id: "capsule-plum", name: "Capsule — Plum", category: "capsule_tablet", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#a78bfa", backgroundColor: "#ffffff", previewImage: "/template-previews/classic-plum.webp" },
+  { id: "capsule-teal", name: "Capsule — Ayurvedic Teal", category: "capsule_tablet", variant: "classic", fontId: "sans-modern", primaryColor: "#084c40", accentColor: "#1f4d38", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-teal.webp" },
+  { id: "capsule-amber", name: "Capsule — Amber Gold", category: "capsule_tablet", variant: "centered", fontId: "serif-classic", primaryColor: "#92400e", accentColor: "#d97706", backgroundColor: "#fffaf0", previewImage: "/template-previews/capsule-amber.webp" },
 
-  // Eleven more, one per product category (see the Higgsfield mockup round
-  // this session — styled/colored to match each one). `variant` still
-  // applies normally for a category that uses the classic/photo-focus/
-  // centered system; for spread and the four NARROW_CATEGORIES above it's
-  // unused (those bypass variant by category, not by which preset was
-  // picked — see buildDefaultLayout) but still lets these same presets work
-  // normally if picked on an order of a different category.
-  { id: "classic-teal", name: "Ayurvedic Teal", variant: "classic", fontId: "sans-modern", primaryColor: "#084c40", accentColor: "#1f4d38", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-teal.webp" },
-  { id: "photo-terracotta", name: "Terracotta Powder", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#8a4a1f", accentColor: "#c2703d", backgroundColor: "#f7f5ef", previewImage: "/template-previews/photo-terracotta.webp" },
-  { id: "centered-citrus", name: "Citrus Splash", variant: "centered", fontId: "sans-modern", primaryColor: "#b5651d", accentColor: "#e2a63b", backgroundColor: "#ffffff", previewImage: "/template-previews/centered-citrus.webp" },
-  { id: "classic-cocoa", name: "Cocoa Bar", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4226", accentColor: "#a8763e", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-cocoa.webp" },
-  { id: "spread-honey", name: "Golden Honey Spread", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4a1f", accentColor: "#c2703d", backgroundColor: "#f3e9d2", previewImage: "/template-previews/spread-honey.webp" },
-  { id: "classic-sage", name: "Sage Sachet", variant: "classic", fontId: "sans-modern", primaryColor: "#3f5c3c", accentColor: "#7a9b76", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-sage.webp" },
-  { id: "classic-deepplum", name: "Deep Plum Box", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#701a75", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-deepplum.webp" },
-  { id: "narrow-electrolyte", name: "Electrolyte Blue", variant: "classic", fontId: "mono-technical", primaryColor: "#1e3a8a", accentColor: "#2f6fea", backgroundColor: "#ffffff", previewImage: "/template-previews/narrow-electrolyte.webp" },
-  { id: "narrow-mint", name: "Mint Topical", variant: "classic", fontId: "sans-modern", primaryColor: "#5c7a58", accentColor: "#a8c3a0", backgroundColor: "#ffffff", previewImage: "/template-previews/narrow-mint.webp" },
-  { id: "narrow-botanical", name: "Botanical Drops", variant: "classic", fontId: "serif-classic", primaryColor: "#1f4d38", accentColor: "#8a6f3d", backgroundColor: "#f7f5ef", previewImage: "/template-previews/narrow-botanical.webp" },
-  { id: "narrow-rosewater", name: "Rosewater Spray", variant: "classic", fontId: "sans-modern", primaryColor: "#8a4a52", accentColor: "#c97b84", backgroundColor: "#ffffff", previewImage: "/template-previews/narrow-rosewater.webp" },
+  // powder
+  { id: "powder-terracotta", name: "Powder — Terracotta", category: "powder", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#8a4a1f", accentColor: "#c2703d", backgroundColor: "#f7f5ef", previewImage: "/template-previews/photo-terracotta.webp" },
+  { id: "powder-sage", name: "Powder — Sage", category: "powder", variant: "classic", fontId: "sans-modern", primaryColor: "#3f5c3c", accentColor: "#7a9b76", backgroundColor: "#f7f5ef", previewImage: "/template-previews/powder-sage.webp" },
+  { id: "powder-charcoal", name: "Powder — Charcoal", category: "powder", variant: "centered", fontId: "mono-technical", primaryColor: "#27272a", accentColor: "#71717a", backgroundColor: "#fafafa", previewImage: "/template-previews/powder-charcoal.webp" },
+  { id: "powder-lavender", name: "Powder — Lavender", category: "powder", variant: "classic", fontId: "serif-classic", primaryColor: "#6b46c1", accentColor: "#a78bfa", backgroundColor: "#faf5ff", previewImage: "/template-previews/powder-lavender.webp" },
+  { id: "powder-turmeric", name: "Powder — Turmeric", category: "powder", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#b45309", accentColor: "#f59e0b", backgroundColor: "#fffbeb", previewImage: "/template-previews/powder-turmeric.webp" },
+
+  // juice_beverage
+  { id: "juice-citrus", name: "Juice — Citrus Splash", category: "juice_beverage", variant: "centered", fontId: "sans-modern", primaryColor: "#b5651d", accentColor: "#e2a63b", backgroundColor: "#ffffff", previewImage: "/template-previews/centered-citrus.webp" },
+  { id: "juice-berry", name: "Juice — Berry", category: "juice_beverage", variant: "classic", fontId: "sans-modern", primaryColor: "#9f1239", accentColor: "#e11d48", backgroundColor: "#fff1f2", previewImage: "/template-previews/juice-berry.webp" },
+  { id: "juice-kale", name: "Juice — Kale Green", category: "juice_beverage", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#166534", accentColor: "#4ade80", backgroundColor: "#f0fdf4", previewImage: "/template-previews/juice-kale.webp" },
+  { id: "juice-mango", name: "Juice — Mango", category: "juice_beverage", variant: "centered", fontId: "serif-classic", primaryColor: "#c2410c", accentColor: "#fb923c", backgroundColor: "#fff7ed", previewImage: "/template-previews/juice-mango.webp" },
+  { id: "juice-blueberry", name: "Juice — Blueberry", category: "juice_beverage", variant: "classic", fontId: "sans-modern", primaryColor: "#4c1d95", accentColor: "#818cf8", backgroundColor: "#eef2ff", previewImage: "/template-previews/juice-blueberry.webp" },
+
+  // bar
+  { id: "bar-cocoa", name: "Bar — Cocoa", category: "bar", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4226", accentColor: "#a8763e", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-cocoa.webp" },
+  { id: "bar-protein", name: "Bar — Protein Blue", category: "bar", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#1e3a8a", accentColor: "#3b82f6", backgroundColor: "#eff6ff", previewImage: "/template-previews/bar-protein.webp" },
+  { id: "bar-energy", name: "Bar — Energy Orange", category: "bar", variant: "classic", fontId: "sans-modern", primaryColor: "#c2410c", accentColor: "#fb923c", backgroundColor: "#fff7ed", previewImage: "/template-previews/bar-energy.webp" },
+  { id: "bar-darkchoc", name: "Bar — Dark Chocolate", category: "bar", variant: "centered", fontId: "serif-classic", primaryColor: "#1c1917", accentColor: "#78716c", backgroundColor: "#fafaf9", previewImage: "/template-previews/bar-darkchoc.webp" },
+  { id: "bar-coconut", name: "Bar — Coconut", category: "bar", variant: "classic", fontId: "sans-modern", primaryColor: "#92400e", accentColor: "#d6d3d1", backgroundColor: "#fffbf5", previewImage: "/template-previews/bar-coconut.webp" },
+
+  // spread — buildSpreadLayout ignores `variant` entirely
+  { id: "spread-sunset", name: "Spread — Sunset", category: "spread", variant: "classic", fontId: "serif-classic", primaryColor: "#9a3412", accentColor: "#f97316", backgroundColor: "#fffaf5", previewImage: "/template-previews/centered-sunset.webp" },
+  { id: "spread-kraft", name: "Spread — Vintage Kraft", category: "spread", variant: "classic", fontId: "serif-classic", primaryColor: "#5a3a22", accentColor: "#b5651d", backgroundColor: "#f3e9d2", previewImage: "/template-previews/vintage-kraft.webp" },
+  { id: "spread-honey", name: "Spread — Golden Honey", category: "spread", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4a1f", accentColor: "#c2703d", backgroundColor: "#f3e9d2", previewImage: "/template-previews/spread-honey.webp" },
+  { id: "spread-berry", name: "Spread — Berry Jam", category: "spread", variant: "classic", fontId: "serif-classic", primaryColor: "#831843", accentColor: "#db2777", backgroundColor: "#fdf2f8", previewImage: "/template-previews/spread-berry.webp" },
+  { id: "spread-hazelnut", name: "Spread — Choc Hazelnut", category: "spread", variant: "classic", fontId: "serif-classic", primaryColor: "#451a03", accentColor: "#92400e", backgroundColor: "#fef3e2", previewImage: "/template-previews/spread-hazelnut.webp" },
+
+  // sachet
+  { id: "sachet-sage", name: "Sachet — Sage", category: "sachet", variant: "classic", fontId: "sans-modern", primaryColor: "#3f5c3c", accentColor: "#7a9b76", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-sage.webp" },
+  { id: "sachet-berry", name: "Sachet — Berry", category: "sachet", variant: "classic", fontId: "sans-modern", primaryColor: "#9f1239", accentColor: "#f472b6", backgroundColor: "#fdf2f8", previewImage: "/template-previews/sachet-berry.webp" },
+  { id: "sachet-citrus", name: "Sachet — Citrus", category: "sachet", variant: "classic", fontId: "sans-modern", primaryColor: "#c2410c", accentColor: "#fb923c", backgroundColor: "#fff7ed", previewImage: "/template-previews/sachet-citrus.webp" },
+  { id: "sachet-charcoal", name: "Sachet — Charcoal", category: "sachet", variant: "classic", fontId: "mono-technical", primaryColor: "#18181b", accentColor: "#71717a", backgroundColor: "#fafafa", previewImage: "/template-previews/sachet-charcoal.webp" },
+  { id: "sachet-ocean", name: "Sachet — Ocean", category: "sachet", variant: "classic", fontId: "sans-modern", primaryColor: "#0c4a6e", accentColor: "#38bdf8", backgroundColor: "#f0f9ff", previewImage: "/template-previews/sachet-ocean.webp" },
+
+  // box
+  { id: "box-slate", name: "Box — Slate", category: "box", variant: "photo-focus", fontId: "mono-technical", primaryColor: "#1e293b", accentColor: "#64748b", backgroundColor: "#f8fafc", previewImage: "/template-previews/photo-slate.webp" },
+  { id: "box-deepplum", name: "Box — Deep Plum", category: "box", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#701a75", backgroundColor: "#f7f5ef", previewImage: "/template-previews/classic-deepplum.webp" },
+  { id: "box-forest", name: "Box — Forest", category: "box", variant: "classic", fontId: "sans-modern", primaryColor: "#14532d", accentColor: "#22c55e", backgroundColor: "#f0fdf4", previewImage: "/template-previews/box-forest.webp" },
+  { id: "box-terracotta", name: "Box — Terracotta", category: "box", variant: "centered", fontId: "sans-modern", primaryColor: "#9a3412", accentColor: "#ea580c", backgroundColor: "#fff7ed", previewImage: "/template-previews/box-terracotta.webp" },
+  { id: "box-ocean", name: "Box — Ocean", category: "box", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#1e3a8a", accentColor: "#3b82f6", backgroundColor: "#eff6ff", previewImage: "/template-previews/box-ocean.webp" },
+
+  // stick_pack — narrow layout, `variant` is inert
+  { id: "stick-electrolyte", name: "Stick Pack — Electrolyte Blue", category: "stick_pack", variant: "classic", fontId: "mono-technical", primaryColor: "#1e3a8a", accentColor: "#2f6fea", backgroundColor: "#ffffff", previewImage: "/template-previews/narrow-electrolyte.webp" },
+  { id: "stick-berry", name: "Stick Pack — Berry", category: "stick_pack", variant: "classic", fontId: "sans-modern", primaryColor: "#9f1239", accentColor: "#f43f5e", backgroundColor: "#fff1f2", previewImage: "/template-previews/stick-berry.webp" },
+  { id: "stick-lime", name: "Stick Pack — Lime", category: "stick_pack", variant: "classic", fontId: "sans-modern", primaryColor: "#3f6212", accentColor: "#84cc16", backgroundColor: "#f7fee7", previewImage: "/template-previews/stick-lime.webp" },
+  { id: "stick-citrus", name: "Stick Pack — Citrus", category: "stick_pack", variant: "classic", fontId: "sans-modern", primaryColor: "#c2410c", accentColor: "#fb923c", backgroundColor: "#fff7ed", previewImage: "/template-previews/stick-citrus.webp" },
+  { id: "stick-grape", name: "Stick Pack — Grape", category: "stick_pack", variant: "classic", fontId: "sans-modern", primaryColor: "#6b21a8", accentColor: "#c084fc", backgroundColor: "#faf5ff", previewImage: "/template-previews/stick-grape.webp" },
+
+  // tube — narrow layout, `variant` is inert
+  { id: "tube-mint", name: "Tube — Mint", category: "tube", variant: "classic", fontId: "sans-modern", primaryColor: "#5c7a58", accentColor: "#a8c3a0", backgroundColor: "#ffffff", previewImage: "/template-previews/narrow-mint.webp" },
+  { id: "tube-rose", name: "Tube — Rose", category: "tube", variant: "classic", fontId: "sans-modern", primaryColor: "#9d174d", accentColor: "#f472b6", backgroundColor: "#fdf2f8", previewImage: "/template-previews/tube-rose.webp" },
+  { id: "tube-charcoal", name: "Tube — Charcoal", category: "tube", variant: "classic", fontId: "mono-technical", primaryColor: "#18181b", accentColor: "#71717a", backgroundColor: "#fafafa", previewImage: "/template-previews/tube-charcoal.webp" },
+  { id: "tube-ocean", name: "Tube — Ocean", category: "tube", variant: "classic", fontId: "sans-modern", primaryColor: "#0c4a6e", accentColor: "#38bdf8", backgroundColor: "#f0f9ff", previewImage: "/template-previews/tube-ocean.webp" },
+  { id: "tube-turmeric", name: "Tube — Turmeric", category: "tube", variant: "classic", fontId: "sans-modern", primaryColor: "#b45309", accentColor: "#f59e0b", backgroundColor: "#fffbeb", previewImage: "/template-previews/tube-turmeric.webp" },
+
+  // dropper_bottle — narrow layout, `variant` is inert
+  { id: "dropper-rose", name: "Dropper — Rose", category: "dropper_bottle", variant: "classic", fontId: "sans-modern", primaryColor: "#701a75", accentColor: "#d946ef", backgroundColor: "#fdf4ff", previewImage: "/template-previews/centered-rose.webp" },
+  { id: "dropper-botanical", name: "Dropper — Botanical", category: "dropper_bottle", variant: "classic", fontId: "serif-classic", primaryColor: "#1f4d38", accentColor: "#8a6f3d", backgroundColor: "#f7f5ef", previewImage: "/template-previews/narrow-botanical.webp" },
+  { id: "dropper-amber", name: "Dropper — Amber Gold", category: "dropper_bottle", variant: "classic", fontId: "serif-classic", primaryColor: "#92400e", accentColor: "#d97706", backgroundColor: "#fffaf0", previewImage: "/template-previews/dropper-amber.webp" },
+  { id: "dropper-lavender", name: "Dropper — Lavender", category: "dropper_bottle", variant: "classic", fontId: "sans-modern", primaryColor: "#6b46c1", accentColor: "#a78bfa", backgroundColor: "#faf5ff", previewImage: "/template-previews/dropper-lavender.webp" },
+  { id: "dropper-ocean", name: "Dropper — Ocean", category: "dropper_bottle", variant: "classic", fontId: "sans-modern", primaryColor: "#0c4a6e", accentColor: "#38bdf8", backgroundColor: "#f0f9ff", previewImage: "/template-previews/dropper-ocean.webp" },
+
+  // spray_bottle — narrow layout, `variant` is inert
+  { id: "spray-rosewater", name: "Spray — Rosewater", category: "spray_bottle", variant: "classic", fontId: "sans-modern", primaryColor: "#8a4a52", accentColor: "#c97b84", backgroundColor: "#ffffff", previewImage: "/template-previews/narrow-rosewater.webp" },
+  { id: "spray-citrus", name: "Spray — Citrus", category: "spray_bottle", variant: "classic", fontId: "sans-modern", primaryColor: "#c2410c", accentColor: "#fb923c", backgroundColor: "#fff7ed", previewImage: "/template-previews/spray-citrus.webp" },
+  { id: "spray-mint", name: "Spray — Mint", category: "spray_bottle", variant: "classic", fontId: "sans-modern", primaryColor: "#166534", accentColor: "#4ade80", backgroundColor: "#f0fdf4", previewImage: "/template-previews/spray-mint.webp" },
+  { id: "spray-lavender", name: "Spray — Lavender", category: "spray_bottle", variant: "classic", fontId: "sans-modern", primaryColor: "#6b46c1", accentColor: "#a78bfa", backgroundColor: "#faf5ff", previewImage: "/template-previews/spray-lavender.webp" },
+  { id: "spray-ocean", name: "Spray — Ocean", category: "spray_bottle", variant: "classic", fontId: "sans-modern", primaryColor: "#0c4a6e", accentColor: "#38bdf8", backgroundColor: "#f0f9ff", previewImage: "/template-previews/spray-ocean.webp" },
 ];
 
 function defaultRectFor(type: BoundElementType, fallback: CanvasElement[]): CanvasElement {
