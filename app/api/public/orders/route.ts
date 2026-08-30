@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
 
-    const { customerName, companyName, customerEmail, catalogProductId, customProductName, category, packFormat, honeypot, renderedAt } = body;
+    const { customerName, companyName, customerEmail, catalogProductId, customProductName, category, packFormat, code, honeypot, renderedAt } = body;
 
     // Silent no-ops, not errors — never tip off a bot that it was caught.
     if (typeof honeypot === "string" && honeypot.trim() !== "") {
@@ -37,6 +37,9 @@ export async function POST(req: NextRequest) {
 
     if (!customerName || !customerEmail || !companyName) {
       return NextResponse.json({ error: "Your name, company name and email are required." }, { status: 400 });
+    }
+    if (!code || typeof code !== "string") {
+      return NextResponse.json({ error: "Enter the code we sent before starting your label." }, { status: 400 });
     }
 
     const db = supabaseAdmin();
@@ -50,6 +53,25 @@ export async function POST(req: NextRequest) {
     if (rateError) return NextResponse.json({ error: rateError.message }, { status: 500 });
     if (!allowed) {
       return NextResponse.json({ error: "Too many label workspaces created recently. Try again in a bit." }, { status: 429 });
+    }
+
+    // The code was emailed only to staff (see request-code/route.ts) — this
+    // is the actual access gate, not the rate limit above. Consumed with a
+    // single conditional UPDATE (not a separate select-then-update) so two
+    // concurrent submissions can't both succeed with the same code.
+    const email = String(customerEmail).trim().toLowerCase();
+    const { data: consumedCode, error: codeError } = await db
+      .from("lg_access_codes")
+      .update({ used_at: new Date().toISOString() })
+      .eq("email", email)
+      .eq("code", code)
+      .is("used_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .select("id")
+      .maybeSingle();
+    if (codeError) return NextResponse.json({ error: codeError.message }, { status: 500 });
+    if (!consumedCode) {
+      return NextResponse.json({ error: "That code is invalid, already used, or expired. Request a new one." }, { status: 400 });
     }
 
     // Two mutually exclusive paths: a known catalog product (auto-fill real

@@ -42,6 +42,12 @@ export default function ProductPicker() {
   const [renderedAt] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The code is emailed only to staff (design@esilkroute.com.lk), never to
+  // the customer — this gates "Start designing" behind a human decision
+  // (see app/api/public/request-code/route.ts) rather than an open signup.
+  const [code, setCode] = useState("");
+  const [codeRequested, setCodeRequested] = useState(false);
+  const [requestingCode, setRequestingCode] = useState(false);
 
   useEffect(() => {
     fetch("/api/public/products")
@@ -54,6 +60,38 @@ export default function ProductPicker() {
       .catch(() => setCategories([]));
   }, []);
 
+  // A code is tied to one email/context — picking a different product (or
+  // closing and reopening the modal) starts that gate over rather than
+  // carrying a stale "already requested" state into an unrelated request.
+  useEffect(() => {
+    setCode("");
+    setCodeRequested(false);
+    setError(null);
+  }, [selection]);
+
+  function startingPointContext(): string | undefined {
+    if (!selection) return undefined;
+    if (selection.kind === "catalog") return selection.product.name;
+    return customName ? `${selection.category.display_label} — ${customName}` : selection.category.display_label;
+  }
+
+  async function requestCode() {
+    setError(null);
+    setRequestingCode(true);
+    const res = await fetch("/api/public/request-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customerName, companyName, customerEmail, context: startingPointContext(), honeypot, renderedAt }),
+    });
+    const data = await res.json().catch(() => null);
+    setRequestingCode(false);
+    if (!res.ok) {
+      setError(data?.error || "Couldn't send a code. Please try again.");
+      return;
+    }
+    setCodeRequested(true);
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selection) return;
@@ -62,7 +100,7 @@ export default function ProductPicker() {
 
     const body =
       selection.kind === "catalog"
-        ? { customerName, companyName, customerEmail, catalogProductId: selection.product.id, honeypot, renderedAt }
+        ? { customerName, companyName, customerEmail, catalogProductId: selection.product.id, code, honeypot, renderedAt }
         : {
             customerName,
             companyName,
@@ -70,6 +108,7 @@ export default function ProductPicker() {
             customProductName: customName,
             category: selection.category.category,
             packFormat: selection.category.default_pack_format,
+            code,
             honeypot,
             renderedAt,
           };
@@ -195,9 +234,51 @@ export default function ProductPicker() {
                 You&apos;ll design and fill in the real regulatory details yourself in the next step, then submit for
                 a quick compliance check before it&apos;s print-ready.
               </p>
-              <button className="btn btn-block" type="submit" disabled={busy}>
-                {busy ? "Starting…" : "Start designing"}
-              </button>
+              {!codeRequested ? (
+                <>
+                  <p className="field-hint" style={{ marginBottom: 12 }}>
+                    We&apos;ll send a code to our team to confirm it&apos;s you — enter it on the next step to start
+                    designing.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-block"
+                    disabled={requestingCode || !customerName || !companyName || !customerEmail}
+                    onClick={requestCode}
+                  >
+                    {requestingCode ? "Requesting…" : "Request code"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="field">
+                    <label>Code</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="6-digit code"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      required
+                    />
+                    <p className="field-hint">
+                      We&apos;ve sent a code to our team — enter it here once they share it with you.{" "}
+                      <button
+                        type="button"
+                        className="link-button"
+                        disabled={requestingCode}
+                        onClick={requestCode}
+                      >
+                        {requestingCode ? "Resending…" : "Resend code"}
+                      </button>
+                    </p>
+                  </div>
+                  <button className="btn btn-block" type="submit" disabled={busy || !code}>
+                    {busy ? "Starting…" : "Start designing"}
+                  </button>
+                </>
+              )}
             </form>
           </div>
         </div>
