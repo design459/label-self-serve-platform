@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+// Import the inner implementation, not the package root — pdf-parse's own
+// index.js has a `let isDebugMode = !module.parent` self-test branch that
+// tries to read a fixture file at import time; that check goes wrong once
+// Next.js bundles this into a serverless function (module.parent is
+// undefined there), throwing an ENOENT at import time. lib/pdf-parse.js has
+// no such side effect.
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { currentStaff } from "@/lib/supabaseAuth";
 import { supabaseAdmin, storageBucket, signedUrlFor } from "@/lib/supabaseServer";
 import { CATEGORY_LABELS, CategoryPanelTemplate, LabelOrder, RegulatoryContent } from "@/lib/types";
@@ -80,14 +87,33 @@ Batch code: ${reg?.batch_code || MISSING}
 Manufacture date: ${reg?.manufacture_date || MISSING}
 Expiry date: ${reg?.expiry_date || MISSING}`;
 
-    // Download every regulation PDF as base64 and hand them to Claude as
-    // real document content blocks (not pre-extracted text) — the model
-    // reads them itself, same fidelity as a human reviewer opening the PDF.
-    const docBlocks = await Promise.all(
+    // Download every regulation PDF and extract its real text server-side
+    // (pdf-parse) rather than relying on Claude to read the raw PDF itself —
+    // proven necessary live: handed a real 25-page gazette regulation as a
+    // plain document block, Claude missed an explicit, repeated "batch
+    // number" requirement entirely. Deterministic text extraction doesn't
+    // have that failure mode. A document with no usable text layer (a pure
+    // scan) falls back to the raw PDF block so the check still runs, just
+    // with the model reading the pages itself as it did before.
+    const docSections = await Promise.all(
       (regDocs as { storage_path: string; file_name: string }[]).map(async (d) => {
         const { data, error } = await db.storage.from(storageBucket()).download(d.storage_path);
         if (error || !data) throw new Error(`Failed to load regulation document "${d.file_name}": ${error?.message ?? "unknown error"}`);
         const buffer = Buffer.from(await data.arrayBuffer());
+
+        try {
+          const parsed = await pdfParse(buffer);
+          const text = parsed.text.trim();
+          if (text.length > 200) {
+            return {
+              type: "text" as const,
+              text: `=== Regulation document: ${d.file_name} ===\n${text}`,
+            };
+          }
+        } catch {
+          // fall through to the raw-PDF fallback below
+        }
+
         return {
           type: "document" as const,
           source: { type: "base64" as const, media_type: "application/pdf" as const, data: buffer.toString("base64") },
@@ -116,11 +142,11 @@ Expiry date: ${reg?.expiry_date || MISSING}`;
         {
           role: "user",
           content: [
-            ...docBlocks,
+            ...docSections,
             ...imageBlocks,
             {
               type: "text",
-              text: `The attached PDF(s) are the current official label regulations. The attached image(s), if any, are the actual rendered label proof — review those the way a human QA reviewer would (layout, legibility, what's actually printed and where), not just the text fields below. The text fields are the same data behind that rendered label:
+              text: `The "Regulation document" text sections above (and any attached PDF, for a document with no extractable text) are the current official label regulations, in full — read every one completely. The attached image(s), if any, are the actual rendered label proof — review those the way a human QA reviewer would (layout, legibility, what's actually printed and where), not just the text fields below. The text fields are the same data behind that rendered label:
 
 ${labelContent}
 
