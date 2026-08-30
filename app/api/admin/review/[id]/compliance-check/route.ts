@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { currentStaff } from "@/lib/supabaseAuth";
-import { supabaseAdmin, storageBucket } from "@/lib/supabaseServer";
+import { supabaseAdmin, storageBucket, signedUrlFor } from "@/lib/supabaseServer";
 import { CATEGORY_LABELS, CategoryPanelTemplate, LabelOrder, RegulatoryContent } from "@/lib/types";
 import { apiCatch } from "@/lib/apiError";
+
+const MISSING = "(not provided — blank on the label)";
 
 // "Quality Assurance (QA) Review" on the review page — staff-triggered,
 // never automatic. Reads the label's own real content (never re-typed or
@@ -27,10 +29,18 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
     const o = order as LabelOrder;
 
-    const [{ data: regulatory }, { data: panel }, { data: regDocs }] = await Promise.all([
+    const [{ data: regulatory }, { data: panel }, { data: regDocs }, { data: design }] = await Promise.all([
       db.from("label_regulatory_content").select("*").eq("label_order_id", o.id).maybeSingle(),
       db.from("category_panel_templates").select("*").eq("category", o.category).maybeSingle(),
       db.from("label_regulation_documents").select("storage_path, file_name").order("created_at", { ascending: false }),
+      db
+        .from("label_designs")
+        .select("*")
+        .eq("label_order_id", o.id)
+        .eq("is_submitted", true)
+        .order("revision_number", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     if (!regDocs || regDocs.length === 0) {
@@ -46,25 +56,29 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     const nutritionLines = (panelTemplate?.field_schema ?? [])
       .map((f) => {
         const v = reg?.nutrition_panel?.[f.key];
-        return v ? `- ${f.label}: ${v}` : null;
+        return `- ${f.label}: ${v || MISSING}`;
       })
-      .filter((line): line is string => line !== null)
       .join("\n");
 
+    // Blank fields render as an explicit "(not provided...)" string rather
+    // than an em dash or empty string — a blank/near-invisible value here
+    // was exactly how the first version of this check let a genuinely
+    // empty batch code slip through as "compliant": Claude read "—" as a
+    // placeholder character, not as "this is missing."
     const labelContent = `Product name: ${o.display_name || o.product_name}
-Tagline: ${o.marketing_tagline || "—"}
+Tagline: ${o.marketing_tagline || MISSING}
 Category: ${CATEGORY_LABELS[o.category]}
 Pack format: ${o.pack_format}
 SKU: ${o.sku_code}
 
-Ingredients: ${reg?.ingredients || "—"}
-Claims: ${reg?.claims || "—"}
-Description: ${reg?.statutory_marks || "—"}
+Ingredients: ${reg?.ingredients || MISSING}
+Claims: ${reg?.claims || MISSING}
+Description: ${reg?.statutory_marks || MISSING}
 
-${panelTemplate?.panel_style === "blank" ? "" : `${panelTemplate?.display_label ?? "Nutrition"} panel:\n${nutritionLines || "- (none entered)"}\n`}
-Batch code: ${reg?.batch_code || "—"}
-Manufacture date: ${reg?.manufacture_date || "—"}
-Expiry date: ${reg?.expiry_date || "—"}`;
+${panelTemplate?.panel_style === "blank" ? "" : `${panelTemplate?.display_label ?? "Nutrition"} panel:\n${nutritionLines || `- ${MISSING}`}\n`}
+Batch code: ${reg?.batch_code || MISSING}
+Manufacture date: ${reg?.manufacture_date || MISSING}
+Expiry date: ${reg?.expiry_date || MISSING}`;
 
     // Download every regulation PDF as base64 and hand them to Claude as
     // real document content blocks (not pre-extracted text) — the model
@@ -81,23 +95,39 @@ Expiry date: ${reg?.expiry_date || "—"}`;
       })
     );
 
+    // Also hand over the actual rendered proof image(s) — checking only
+    // the underlying text fields above misses anything that's a property
+    // of the LAYOUT (legibility, font size, what's actually visible and
+    // where), which a regulation can absolutely require. This is what a
+    // human reviewer would look at first.
+    const proofPaths: string[] = Array.isArray(design?.proof_storage_paths)
+      ? design.proof_storage_paths
+      : design?.proof_storage_path
+      ? [design.proof_storage_path]
+      : [];
+    const proofUrls = (await Promise.all(proofPaths.map((p) => signedUrlFor(p)))).filter((u): u is string => u !== null);
+    const imageBlocks = proofUrls.map((url) => ({ type: "image" as const, source: { type: "url" as const, url } }));
+
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 600,
+      max_tokens: 1024,
       messages: [
         {
           role: "user",
           content: [
             ...docBlocks,
+            ...imageBlocks,
             {
               type: "text",
-              text: `The attached document(s) are the current official label regulations. Check the label content below against them.
+              text: `The attached PDF(s) are the current official label regulations. The attached image(s), if any, are the actual rendered label proof — review those the way a human QA reviewer would (layout, legibility, what's actually printed and where), not just the text fields below. The text fields are the same data behind that rendered label:
 
 ${labelContent}
 
 Rules:
-- List ONLY the specific, concrete items that need to change for this label to comply with the attached regulation(s) — short bullet points, one line each (e.g. "Add allergen statement", "Net weight must be in metric units").
+- Be thorough: check every mandatory declaration the attached regulation(s) require (e.g. batch/lot identification, date marking, net quantity, ingredient declaration, allergen statement, manufacturer/importer/distributor name and address, country of origin, language requirements, nutrition/supplement panel format) — not just the obvious ones.
+- A field marked "${MISSING}" above, or empty/unreadable in the rendered image, is NOT compliant if the regulation requires that information — flag it.
+- List ONLY the specific, concrete items that need to change — short bullet points, one line each (e.g. "Add allergen statement", "Batch code is blank — required for traceability", "Net weight must be in metric units").
 - Do not restate what's already correct or compliant.
 - Do not invent a requirement that isn't actually in the attached document(s).
 - If nothing needs to change, respond with exactly: No compliance issues found.
