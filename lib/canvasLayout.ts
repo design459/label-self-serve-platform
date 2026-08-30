@@ -448,6 +448,29 @@ function buildSpreadLayout(ctx: LayoutCtx): CanvasElement[] {
   ];
 }
 
+// A single stacked column for the four tall/narrow pack formats (stick
+// pack, tube, dropper bottle, spray bottle) — the header/left/right split
+// every other category's classic/photo-focus/centered variants use assumes
+// a roughly landscape front panel, which doesn't fit a strip this narrow.
+// Same reasoning as buildSpreadLayout: bypasses the template's own
+// zone_layout and the variant system entirely, but still only arranges the
+// customer's own real data through the same 8 bound element types.
+function buildNarrowLayout(ctx: LayoutCtx): CanvasElement[] {
+  const { fontId, primaryColor, accentColor, bodyColor } = ctx;
+  return [
+    { id: newId(), type: "photo", x: 20, y: 3, w: 60, h: 24, imagePosition: { x: 50, y: 50, scale: 1 } },
+    { id: newId(), type: "productName", x: 5, y: 29, w: 90, h: 9, style: { fontId, fontSize: 4.2, color: primaryColor, textAlign: "center" } },
+    { id: newId(), type: "tagline", x: 5, y: 38, w: 90, h: 5, style: { fontId, fontSize: 2, color: "#5b6472", textAlign: "center" } },
+    { id: newId(), type: "claims", x: 5, y: 44, w: 90, h: 7, style: { fontId, fontSize: 1.6, color: "#ffffff", badgeColor: accentColor } },
+    { id: newId(), type: "ingredients", x: 5, y: 52, w: 90, h: 15, style: { fontId, fontSize: 2.1, color: bodyColor } },
+    { id: newId(), type: "statutoryMarks", x: 5, y: 68, w: 90, h: 13, style: { fontId, fontSize: 2.1, color: bodyColor } },
+    { id: newId(), type: "nutritionPanel", x: 5, y: 82, w: 90, h: 11, style: { fontId, fontSize: 2, color: bodyColor } },
+    { id: newId(), type: "footer", x: 5, y: 94, w: 90, h: 5, style: { fontId, fontSize: 1.8, color: bodyColor } },
+  ];
+}
+
+const NARROW_CATEGORIES: ProductCategory[] = ["stick_pack", "tube", "dropper_bottle", "spray_bottle"];
+
 // Maps each seeded pack_format_templates.zone_layout rect (see
 // supabase/migrations/0001_init.sql) into starter element positions, so a
 // customer who opens the editor for the first time sees their already-
@@ -475,6 +498,9 @@ export function buildDefaultLayout(
 
   if (category === "spread") {
     return buildSpreadLayout(ctx);
+  }
+  if (NARROW_CATEGORIES.includes(category)) {
+    return buildNarrowLayout(ctx);
   }
 
   switch (opts?.variant) {
@@ -515,6 +541,26 @@ export const LABEL_TEMPLATES: LabelTemplate[] = [
   { id: "classic-plum", name: "Classic Plum", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#a78bfa", backgroundColor: "#ffffff" },
   { id: "photo-slate", name: "Photo Focus Slate", variant: "photo-focus", fontId: "mono-technical", primaryColor: "#1e293b", accentColor: "#64748b", backgroundColor: "#f8fafc" },
   { id: "centered-rose", name: "Centered Rose", variant: "centered", fontId: "sans-modern", primaryColor: "#701a75", accentColor: "#d946ef", backgroundColor: "#fdf4ff" },
+  { id: "vintage-kraft", name: "Vintage Kraft", variant: "centered", fontId: "serif-classic", primaryColor: "#5a3a22", accentColor: "#b5651d", backgroundColor: "#f3e9d2" },
+
+  // Eleven more, one per product category (see the Higgsfield mockup round
+  // this session — styled/colored to match each one). `variant` still
+  // applies normally for a category that uses the classic/photo-focus/
+  // centered system; for spread and the four NARROW_CATEGORIES above it's
+  // unused (those bypass variant by category, not by which preset was
+  // picked — see buildDefaultLayout) but still lets these same presets work
+  // normally if picked on an order of a different category.
+  { id: "classic-teal", name: "Ayurvedic Teal", variant: "classic", fontId: "sans-modern", primaryColor: "#084c40", accentColor: "#1f4d38", backgroundColor: "#f7f5ef" },
+  { id: "photo-terracotta", name: "Terracotta Powder", variant: "photo-focus", fontId: "sans-modern", primaryColor: "#8a4a1f", accentColor: "#c2703d", backgroundColor: "#f7f5ef" },
+  { id: "centered-citrus", name: "Citrus Splash", variant: "centered", fontId: "sans-modern", primaryColor: "#b5651d", accentColor: "#e2a63b", backgroundColor: "#ffffff" },
+  { id: "classic-cocoa", name: "Cocoa Bar", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4226", accentColor: "#a8763e", backgroundColor: "#f7f5ef" },
+  { id: "spread-honey", name: "Golden Honey Spread", variant: "classic", fontId: "serif-classic", primaryColor: "#6b4a1f", accentColor: "#c2703d", backgroundColor: "#f3e9d2" },
+  { id: "classic-sage", name: "Sage Sachet", variant: "classic", fontId: "sans-modern", primaryColor: "#3f5c3c", accentColor: "#7a9b76", backgroundColor: "#f7f5ef" },
+  { id: "classic-deepplum", name: "Deep Plum Box", variant: "classic", fontId: "serif-classic", primaryColor: "#4c1d95", accentColor: "#701a75", backgroundColor: "#f7f5ef" },
+  { id: "narrow-electrolyte", name: "Electrolyte Blue", variant: "classic", fontId: "mono-technical", primaryColor: "#1e3a8a", accentColor: "#2f6fea", backgroundColor: "#ffffff" },
+  { id: "narrow-mint", name: "Mint Topical", variant: "classic", fontId: "sans-modern", primaryColor: "#5c7a58", accentColor: "#a8c3a0", backgroundColor: "#ffffff" },
+  { id: "narrow-botanical", name: "Botanical Drops", variant: "classic", fontId: "serif-classic", primaryColor: "#1f4d38", accentColor: "#8a6f3d", backgroundColor: "#f7f5ef" },
+  { id: "narrow-rosewater", name: "Rosewater Spray", variant: "classic", fontId: "sans-modern", primaryColor: "#8a4a52", accentColor: "#c97b84", backgroundColor: "#ffffff" },
 ];
 
 function defaultRectFor(type: BoundElementType, fallback: CanvasElement[]): CanvasElement {
