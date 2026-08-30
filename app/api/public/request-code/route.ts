@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomInt } from "crypto";
-import { supabaseAdmin, logAudit } from "@/lib/supabaseServer";
+import { supabaseAdmin } from "@/lib/supabaseServer";
 import { sendEmail } from "@/lib/sendEmail";
 import { apiCatch } from "@/lib/apiError";
 
@@ -94,8 +94,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await logAudit(null, "customer", "access_code_requested", { customer_email: email });
-
+    // No logAudit here — that helper is keyed to a real label_orders row,
+    // which doesn't exist yet at this point; the lg_access_codes row
+    // inserted above (with its email/timestamp) is this action's own
+    // record instead.
     return NextResponse.json({ ok: true });
   } catch (err) {
     return apiCatch(err);
