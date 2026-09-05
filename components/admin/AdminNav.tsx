@@ -2,18 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
 export default function AdminNav({ email }: { email: string | null }) {
   const router = useRouter();
 
   async function signOut() {
-    // Clear both sessions: Supabase Auth (native sign-in) and, if present, the
-    // SPINE SSO cookie (httpOnly, so it needs a server route to clear).
-    await Promise.all([
-      supabaseBrowser().auth.signOut(),
-      fetch("/api/sso/logout", { method: "POST" }).catch(() => undefined),
-    ]);
+    // Clear the SPINE SSO session cookie (httpOnly, so it needs a server route).
+    await fetch("/api/sso/logout", { method: "POST" }).catch(() => undefined);
     router.push("/admin/login");
     router.refresh();
   }
