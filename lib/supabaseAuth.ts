@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "./supabaseServer";
+import { verifySession, SSO_COOKIE } from "./spineLaunch";
 
 // Session-aware client (anon key + the visitor's own auth cookies) — used
 // only to answer "who is logged in", never for data access. All actual
@@ -49,6 +50,26 @@ export interface StaffMember {
 // itself — every /admin route must also check lg_staff_users, which is why
 // this checks both.
 export async function currentStaff(): Promise<StaffMember | null> {
+  // 1) SPINE SSO session (set by /api/sso/exchange) takes precedence — a signed
+  // cookie carrying an already-resolved lg_staff_users identity. Re-confirm the
+  // row still exists on every request so a revoked staff member loses access
+  // immediately, not only when the 8h cookie expires.
+  const ssoSecret = process.env.LABELGEN_SESSION_SECRET;
+  if (ssoSecret) {
+    const sso = verifySession(cookies().get(SSO_COOKIE)?.value, ssoSecret);
+    if (sso) {
+      const { data: ssoStaffRow } = await supabaseAdmin()
+        .from("lg_staff_users")
+        .select("role")
+        .eq("user_id", sso.uid)
+        .maybeSingle();
+      if (ssoStaffRow) {
+        return { userId: sso.uid, email: sso.email || null, role: ssoStaffRow.role as string };
+      }
+    }
+  }
+
+  // 2) Native Supabase Auth session (staff sign-in at /admin/login).
   const session = supabaseSession();
   const { data: userData } = await session.auth.getUser();
   const user = userData?.user;

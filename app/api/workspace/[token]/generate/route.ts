@@ -223,11 +223,21 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       await browser.close();
     }
 
-    const { data: newDesign, error: spendError } = await db.rpc("lg_spend_revision", { p_order_id: order.id });
+    // Pass the caller's access_token so lg_spend_revision() can verify ownership
+    // itself (migration 0013). params.token is the same token getOrderByToken()
+    // matched above, so this is the token that entitles this order.
+    const { data: newDesign, error: spendError } = await db.rpc("lg_spend_revision", {
+      p_order_id: order.id,
+      p_access_token: params.token,
+    });
     if (spendError) {
-      const status =
-        spendError.message.includes("already approved") || spendError.message.includes("cap reached") ? 409 : 500;
-      return NextResponse.json({ error: spendError.message }, { status });
+      const msg = spendError.message;
+      const status = msg.includes("not authorized")
+        ? 403
+        : msg.includes("already approved") || msg.includes("cap reached")
+          ? 409
+          : 500;
+      return NextResponse.json({ error: msg }, { status });
     }
 
     const proofPaths = pngBuffers.map((_, i) => `orders/${order.id}/designs/${newDesign.id}/proof-${i + 1}.png`);

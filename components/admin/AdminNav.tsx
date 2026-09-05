@@ -8,7 +8,12 @@ export default function AdminNav({ email }: { email: string | null }) {
   const router = useRouter();
 
   async function signOut() {
-    await supabaseBrowser().auth.signOut();
+    // Clear both sessions: Supabase Auth (native sign-in) and, if present, the
+    // SPINE SSO cookie (httpOnly, so it needs a server route to clear).
+    await Promise.all([
+      supabaseBrowser().auth.signOut(),
+      fetch("/api/sso/logout", { method: "POST" }).catch(() => undefined),
+    ]);
     router.push("/admin/login");
     router.refresh();
   }
