@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseServer";
 import { verifyLaunchToken, signSession, SPINE_SURFACE, SSO_COOKIE } from "@/lib/spineLaunch";
 
 export const dynamic = "force-dynamic";
 
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8h — our own session, not the 90s launch token
 
-// POST { token } — verify the SPINE launch token, confirm the email is a
-// staff member, and set our signed session cookie. Every failure returns a
-// reason so /admin/login can say WHY instead of showing a blank login box.
+// POST { token } — verify the SPINE launch token and set our signed session
+// cookie. SPINE only mints a token for a surface the person is GRANTED
+// (app-launch -> my_access), so a valid token for our surface IS the
+// authorization — there is no app-side staff table or Supabase account to
+// check. Every failure returns a reason so /admin/login can say WHY.
 export async function POST(req: NextRequest) {
   const bridgeSecret = process.env.ATLAS_BRIDGE_SECRET;
   const sessionSecret = process.env.LABELGEN_SESSION_SECRET;
@@ -29,18 +30,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: "wrong_surface" }, { status: 403 });
   }
 
-  // Map the SPINE email to a staff row (SECURITY DEFINER resolver, migration 0013).
-  const { data, error } = await supabaseAdmin().rpc("lg_staff_by_email", { p_email: claims.email });
-  const staff = Array.isArray(data) ? data[0] : data;
-  if (error || !staff?.user_id) {
-    return NextResponse.json({ ok: false, reason: "not_staff" }, { status: 403 });
-  }
-
   const value = signSession(
     {
-      uid: staff.user_id as string,
       email: claims.email,
-      role: (staff.role as string) ?? "reviewer",
+      role: claims.admin ? "admin" : "reviewer",
+      admin: claims.admin,
       exp: Date.now() + SESSION_TTL_MS,
     },
     sessionSecret

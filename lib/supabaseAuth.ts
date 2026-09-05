@@ -40,32 +40,28 @@ export function supabaseSession() {
 }
 
 export interface StaffMember {
-  userId: string;
+  // Present only for native Supabase Auth sign-ins. SPINE SSO staff are
+  // identified by email (no app-side user account), so userId is undefined.
+  userId?: string | null;
   email: string | null;
   role: string;
 }
 
-// Returns the logged-in staff member, or null if not logged in / not a
-// lg_staff_users row. Being logged into Supabase Auth is not sufficient by
-// itself — every /admin route must also check lg_staff_users, which is why
-// this checks both.
+// Returns the logged-in staff member, or null if not signed in. Two ways in:
+// SPINE SSO (the main path — identity by email, no app account) and native
+// Supabase Auth (fallback for the few provisioned app accounts).
 export async function currentStaff(): Promise<StaffMember | null> {
-  // 1) SPINE SSO session (set by /api/sso/exchange) takes precedence — a signed
-  // cookie carrying an already-resolved lg_staff_users identity. Re-confirm the
-  // row still exists on every request so a revoked staff member loses access
-  // immediately, not only when the 8h cookie expires.
+  // 1) SPINE SSO session (set by /api/sso/exchange) takes precedence. The signed
+  // cookie is only issued after a valid SPINE launch token, and SPINE only mints
+  // one for a surface the person is GRANTED (app-launch -> my_access) — so the
+  // cookie is authorization proof on its own; no local staff lookup is needed.
+  // Revocation: remove the SPINE grant; it takes effect at the next sign-in
+  // (sessions live 8h).
   const ssoSecret = process.env.LABELGEN_SESSION_SECRET;
   if (ssoSecret) {
     const sso = verifySession(cookies().get(SSO_COOKIE)?.value, ssoSecret);
     if (sso) {
-      const { data: ssoStaffRow } = await supabaseAdmin()
-        .from("lg_staff_users")
-        .select("role")
-        .eq("user_id", sso.uid)
-        .maybeSingle();
-      if (ssoStaffRow) {
-        return { userId: sso.uid, email: sso.email || null, role: ssoStaffRow.role as string };
-      }
+      return { email: sso.email, role: sso.role };
     }
   }
 
