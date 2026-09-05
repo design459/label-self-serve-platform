@@ -31,10 +31,12 @@ export function verifyLaunchToken(token: string, secret: string, now = Date.now(
   return { email: String(obj.email).toLowerCase(), surface: String(obj.surface), admin: !!obj.admin };
 }
 
-// Our own app session — a signed cookie carrying an already-resolved
-// lg_staff_users identity. Independent of Supabase Auth; do NOT reuse the
-// 90s launch token as the session.
-export type SessionClaims = { uid: string; email: string; role: string; exp: number };
+// Our own app session — a signed cookie identifying the SPINE user by EMAIL.
+// SPINE only mints a launch token for a surface the person is granted
+// (netlify/functions/app-launch.ts -> my_access), so a verified token IS the
+// authorization: no app-side staff table or Supabase Auth account is needed.
+// Independent of Supabase Auth; do NOT reuse the 90s launch token as the session.
+export type SessionClaims = { email: string; role: string; admin: boolean; exp: number };
 
 export function signSession(claims: SessionClaims, secret: string): string {
   const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
@@ -51,17 +53,17 @@ export function verifySession(value: string | undefined, secret: string, now = D
   const expected = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
   if (sig.length !== expected.length) return null;
   if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
-  let obj: { uid?: unknown; email?: unknown; role?: unknown; exp?: unknown };
+  let obj: { email?: unknown; role?: unknown; admin?: unknown; exp?: unknown };
   try {
     obj = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
   } catch {
     return null;
   }
-  if (!obj?.uid || !obj?.exp || now > Number(obj.exp)) return null;
+  if (!obj?.email || !obj?.exp || now > Number(obj.exp)) return null;
   return {
-    uid: String(obj.uid),
-    email: String(obj.email ?? ""),
+    email: String(obj.email).toLowerCase(),
     role: String(obj.role ?? "reviewer"),
+    admin: !!obj.admin,
     exp: Number(obj.exp),
   };
 }

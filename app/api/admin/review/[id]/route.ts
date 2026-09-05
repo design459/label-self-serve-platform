@@ -89,7 +89,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const { error: reviewInsertError } = await db.from("compliance_reviews").insert({
       label_order_id: order.id,
       label_design_id: design.id,
-      reviewer_id: staff.userId,
+      reviewer_id: staff.userId ?? null, // null for SPINE SSO staff (no app account)
+      reviewer_email: staff.email,
       decision,
       reason: reason ?? null,
     });

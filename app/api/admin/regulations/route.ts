@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     const db = supabaseAdmin();
     const { data, error } = await db
       .from("label_regulation_documents")
-      .insert({ file_name: file.name, storage_path: path, size_bytes: file.size, uploaded_by: staff.userId })
+      .insert({ file_name: file.name, storage_path: path, size_bytes: file.size, uploaded_by: staff.userId ?? null, uploaded_by_email: staff.email })
       .select()
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
