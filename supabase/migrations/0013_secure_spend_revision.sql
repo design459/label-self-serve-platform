@@ -1,39 +1,30 @@
 -- Security fix for oi-8 (SPINE Fleet Catalogue) — verified live on MULTI-X
--- 2026-09-04. Two live defects on a PAID service:
+-- 2026-09-04 — PLUS the SSO staff resolver. Applied as an EXPAND/CONTRACT pair
+-- (this file expands + secures; 0014 contracts) so the live app never breaks:
+-- the currently-deployed app calls lg_spend_revision(uuid) via service_role, so
+-- this migration keeps that 1-arg function working while adding the secure
+-- 2-arg version and closing the anon hole immediately.
 --
---   1. public.lg_spend_revision(uuid) is SECURITY DEFINER and EXECUTE is granted
---      to `anon`. It checks only that the order exists, isn't approved, and is
---      under its revision cap — NOT that the caller owns the order. Order UUIDs
---      appear in customer emails/URLs, so anyone with the public anon key and an
---      order id could POST /rest/v1/rpc/lg_spend_revision and burn a paid
---      revision, writing an lg_audit_log row falsely attributed to 'customer'.
---      (The app's own /api/workspace/[token]/generate route already proves the
---      token before calling this via service_role — the hole is the direct
---      anon path that bypasses the app.)
---
---   2. label_orders.revision_limit still DEFAULTS to 5, so every new order
---      reverts to 5 despite the ruled cap of 3 (the 29 existing rows are 3).
---
--- Fix: bring the default to 3; replace the 1-arg function with a 2-arg version
--- that requires the order's access_token and verifies it against the locked
--- row before any write; drop the old 1-arg overload so the anon-exploitable
--- signature stops existing; and grant EXECUTE only to service_role (the app
--- calls it server-side, never from the browser).
---
--- APPLY TOGETHER with the matching app change in
--- app/api/workspace/[token]/generate/route.ts (passes p_access_token). The old
--- 1-arg call breaks the moment this migration lands, so migration + deploy must
--- ship in the same release.
+-- Defects (both confirmed live 2026-09-04):
+--   1. public.lg_spend_revision(uuid) is SECURITY DEFINER with EXECUTE granted to
+--      `anon` and no ownership check — anyone with an order UUID + the public
+--      anon key could burn a paid revision (audit row falsely attributed to
+--      'customer'). The app itself calls it via service_role, so revoking anon
+--      breaks nothing.
+--   2. label_orders.revision_limit still DEFAULTS to 5 (existing 29 rows are 3),
+--      so new orders reverted to 5 against the ruled cap of 3.
 
 begin;
 
--- 1. enforce the ruled cap on NEW orders (existing rows are already 3)
+-- 1. enforce the ruled cap on NEW orders (existing rows already 3)
 alter table public.label_orders alter column revision_limit set default 3;
 
--- 2. remove the anon-exploitable 1-arg function entirely
-drop function if exists public.lg_spend_revision(uuid);
+-- 2. close the anon exploit on the legacy 1-arg function NOW.
+--    service_role keeps EXECUTE, so the currently-deployed app is unaffected.
+revoke execute on function public.lg_spend_revision(uuid) from anon, authenticated;
 
--- 3. recreate with an ownership check (same body, plus the token gate)
+-- 3. add the secure 2-arg version the new app deploy will call (ownership check;
+--    service_role only). 0014 drops the legacy 1-arg once that deploy is live.
 create function public.lg_spend_revision(p_order_id uuid, p_access_token text)
   returns public.label_designs
   language plpgsql
@@ -95,8 +86,25 @@ begin
 end;
 $function$;
 
--- 4. only the server (service_role) may spend a revision; never anon/authenticated
 revoke all on function public.lg_spend_revision(uuid, text) from public, anon, authenticated;
 grant execute on function public.lg_spend_revision(uuid, text) to service_role;
+
+-- 4. SSO staff resolver: map a SPINE email to its lg_staff_users row so
+--    /api/sso/exchange can confirm staff without listing all auth users.
+--    Reads auth.users, so SECURITY DEFINER + service_role only.
+create function public.lg_staff_by_email(p_email text)
+  returns table (user_id uuid, role text)
+  language sql
+  security definer
+  set search_path to 'public', 'auth'
+as $function$
+  select s.user_id, s.role
+  from public.lg_staff_users s
+  join auth.users u on u.id = s.user_id
+  where lower(u.email) = lower(p_email)
+$function$;
+
+revoke all on function public.lg_staff_by_email(text) from public, anon, authenticated;
+grant execute on function public.lg_staff_by_email(text) to service_role;
 
 commit;

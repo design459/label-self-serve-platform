@@ -1,10 +1,10 @@
 # SPINE SSO — build spec for the staff side
 
-**Owner:** Sakuni · **Status:** not built (open item `oi-9` in the SPINE Fleet Catalogue) · **Written:** 2026-09-04
+**Owner:** Sakuni · **Status:** IMPLEMENTED in this PR (2026-09-05) — code below is now the built design, not a proposal · open item `oi-9` · **Written:** 2026-09-04
 
 This is the app-side work that connects **Label Generator** to SPINE. It is deliberately scoped to the **staff** surface (`/admin/*`). The customer flow (`/workspace/[token]`) is unchanged — customers keep entering by their per-order `access_token` link, they never touch SPINE.
 
-Nothing here has been applied to the live app. It is a spec to build against; the code samples are copy-adaptable but must be reviewed and tested before they ship to `customlabel.netlify.app`.
+**What shipped (this PR):** `lib/spineLaunch.ts` (token + session helpers), `app/api/sso/exchange/route.ts`, `app/api/sso/logout/route.ts`, `app/sso/page.tsx`, `app/api/selftest/route.ts`, the `currentStaff()` SSO-cookie path in `lib/supabaseAuth.ts`, the `AdminNav` sign-out clear, and the `?sso=` reason banner on `/admin/login`. The email→staff bridge is the `lg_staff_by_email` resolver in migration `0013`. **The one remaining step is human-only:** set `ATLAS_BRIDGE_SECRET` (from SPINE) + `LABELGEN_SESSION_SECRET` (`openssl rand -base64 48`) on the `customlabel` Netlify site and redeploy, then `curl .../api/selftest` must read `ok:true`.
 
 ---
 
